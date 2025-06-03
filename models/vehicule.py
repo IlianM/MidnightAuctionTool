@@ -58,7 +58,7 @@ class Vehicule:
     def marquer_achete(self):
         """Marque le véhicule comme acheté avec la date actuelle"""
         self.statut = "Acheté"
-        self.date_achat = datetime.now().strftime("%d/%m/%Y %H:%M")
+        self.date_achat = datetime.now().strftime("%d/%m/%Y")
     
     def remettre_en_reperage(self):
         """Remet le véhicule en repérage"""

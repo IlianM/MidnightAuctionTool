@@ -1,51 +1,6 @@
 {
   "vehicules_reperage": [
     {
-      "lot": "LOT100",
-      "marque": "Opel",
-      "modele": "Corsa",
-      "annee": "2022",
-      "kilometrage": "164,000 km",
-      "chose_a_faire": "Changement plaquettes de frein",
-      "cout_reparations": "2103",
-      "temps_reparations": "4",
-      "prix_revente": "11632",
-      "prix_max_achat": "7298",
-      "prix_achat": "10000",
-      "statut": "Acheté",
-      "date_achat": "03/06/2025 19:56"
-    },
-    {
-      "lot": "LOT101",
-      "marque": "Fiat",
-      "modele": "500",
-      "annee": "2016",
-      "kilometrage": "38,000 km",
-      "chose_a_faire": "Nettoyage complet intérieur/extérieur",
-      "cout_reparations": "1024",
-      "temps_reparations": "16",
-      "prix_revente": "11440",
-      "prix_max_achat": "7901",
-      "prix_achat": "",
-      "statut": "Repérage",
-      "date_achat": ""
-    },
-    {
-      "lot": "LOT102",
-      "marque": "Ford",
-      "modele": "Focus",
-      "annee": "2019",
-      "kilometrage": "80,000 km",
-      "chose_a_faire": "Carrosserie rayures + retouche peinture",
-      "cout_reparations": "332",
-      "temps_reparations": "10",
-      "prix_revente": "15080",
-      "prix_max_achat": "12092",
-      "prix_achat": "",
-      "statut": "Repérage",
-      "date_achat": ""
-    },
-    {
       "lot": "LOT103",
       "marque": "Peugeot",
       "modele": "308",
@@ -209,21 +164,6 @@
       "prix_achat": "",
       "statut": "Repérage",
       "date_achat": ""
-    },
-    {
-      "lot": "LOT114",
-      "marque": "Peugeot",
-      "modele": "308",
-      "annee": "2020",
-      "kilometrage": "177,000 km",
-      "chose_a_faire": "Polissage carrosserie",
-      "cout_reparations": "1591",
-      "temps_reparations": "10",
-      "prix_revente": "17326",
-      "prix_max_achat": "12899",
-      "prix_achat": "",
-      "statut": "Repérage",
-      "date_achat": ""
     }
   ],
   "vehicules_achetes": [
@@ -361,6 +301,51 @@
       "prix_achat": "10000",
       "statut": "Acheté",
       "date_achat": "03/06/2025 19:28"
+    },
+    {
+      "lot": "LOT101",
+      "marque": "Fiat",
+      "modele": "500",
+      "annee": "2016",
+      "kilometrage": "38,000 km",
+      "chose_a_faire": "Nettoyage complet intérieur/extérieur",
+      "cout_reparations": "102400",
+      "temps_reparations": "16",
+      "prix_revente": "11440",
+      "prix_max_achat": "7901",
+      "prix_achat": "5000",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025 01:07"
+    },
+    {
+      "lot": "LOT102",
+      "marque": "Ford",
+      "modele": "Focus",
+      "annee": "2019",
+      "kilometrage": "80,000 km",
+      "chose_a_faire": "Carrosserie rayures + retouche peinture",
+      "cout_reparations": "1000",
+      "temps_reparations": "10",
+      "prix_revente": "15080",
+      "prix_max_achat": "12092",
+      "prix_achat": "1000",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025 01:08"
+    },
+    {
+      "lot": "LOT114",
+      "marque": "Peugeot",
+      "modele": "308",
+      "annee": "2020",
+      "kilometrage": "177,000 km",
+      "chose_a_faire": "Polissage carrosserie",
+      "cout_reparations": "1591",
+      "temps_reparations": "10",
+      "prix_revente": "17326",
+      "prix_max_achat": "12899",
+      "prix_achat": "9500",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
     }
   ]
 }

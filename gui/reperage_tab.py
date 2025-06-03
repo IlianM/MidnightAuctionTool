@@ -38,25 +38,79 @@ class ReperageTab:
     
     def creer_interface(self):
         """Crée l'interface complète de l'onglet repérage avec CustomTkinter"""
-        main_frame = ctk.CTkFrame(self.frame)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Créer un scrollable frame
+        self.scrollable_frame = ctk.CTkScrollableFrame(self.frame)
+        self.scrollable_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Titre
         titre = ctk.CTkLabel(
-            main_frame,
+            self.scrollable_frame,
             text="🔍 REPÉRAGE DE VÉHICULES",
             font=ctk.CTkFont(size=20, weight="bold")
         )
         titre.pack(pady=(0, 20))
         
         # Saisie rapide
-        self.creer_section_saisie(main_frame)
+        self.creer_section_saisie(self.scrollable_frame)
+        
+        # Barre de recherche (juste au-dessus du tableau)
+        self.creer_barre_recherche(self.scrollable_frame)
         
         # Tableau véhicules
-        self.creer_section_tableau(main_frame)
+        self.creer_section_tableau(self.scrollable_frame)
         
         # Boutons actions
-        self.creer_section_actions(main_frame)
+        self.creer_section_actions(self.scrollable_frame)
+    
+    def creer_barre_recherche(self, parent):
+        """Crée la barre de recherche"""
+        search_frame = ctk.CTkFrame(parent)
+        search_frame.pack(fill="x", pady=(0, 20))
+        
+        # Titre de la section
+        search_title = ctk.CTkLabel(
+            search_frame,
+            text="🔎 RECHERCHE",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        search_title.pack(pady=(15, 10))
+        
+        # Frame pour la barre de recherche
+        search_input_frame = ctk.CTkFrame(search_frame)
+        search_input_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        # Label
+        search_label = ctk.CTkLabel(
+            search_input_frame,
+            text="Rechercher:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=100
+        )
+        search_label.pack(side="left", padx=10, pady=10)
+        
+        # Variable de recherche
+        self.var_recherche = ctk.StringVar()
+        self.var_recherche.trace('w', self.on_recherche_change)
+        
+        # Champ de recherche
+        self.entry_recherche = ctk.CTkEntry(
+            search_input_frame,
+            textvariable=self.var_recherche,
+            placeholder_text="N° lot, marque ou modèle...",
+            font=ctk.CTkFont(size=12),
+            width=300
+        )
+        self.entry_recherche.pack(side="left", padx=10, pady=10, fill="x", expand=True)
+        
+        # Bouton effacer
+        clear_button = ctk.CTkButton(
+            search_input_frame,
+            text="🗑️ Effacer",
+            command=self.effacer_recherche,
+            font=ctk.CTkFont(size=12),
+            width=100
+        )
+        clear_button.pack(side="right", padx=10, pady=10)
     
     def creer_section_saisie(self, parent):
         """Crée la section de saisie rapide simplifiée"""
@@ -168,13 +222,14 @@ class ReperageTab:
         )
         titre_tableau.pack(pady=(15, 20))
         
-        # Container pour le tableau
+        # Container pour le tableau avec hauteur minimale
         container = ctk.CTkFrame(tableau_frame)
         container.pack(fill="both", expand=True, padx=20, pady=(0, 15))
+        container.configure(height=250)  # Hauteur minimale de 250px
         
         # Tableau
-        columns = ("lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "statut")
-        self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=20)
+        columns = ("lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "prix_achat", "statut")
+        self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=8)  # Hauteur optimisée
         
         # Configuration du style pour agrandir la police
         style = ttk.Style()
@@ -191,6 +246,7 @@ class ReperageTab:
             "prix_revente": "PRIX REVENTE",
             "cout_reparations": "COÛT RÉPAR",
             "temps_reparations": "TEMPS (h)",
+            "prix_achat": "PRIX ACHAT",
             "statut": "STATUT"
         }
         
@@ -198,7 +254,7 @@ class ReperageTab:
             self.tree_reperage.heading(col, text=heading)
             if col in ["lot", "annee", "kilometrage", "temps_reparations"]:
                 self.tree_reperage.column(col, width=80, anchor="center")
-            elif col in ["prix_revente", "cout_reparations"]:
+            elif col in ["prix_revente", "cout_reparations", "prix_achat"]:
                 self.tree_reperage.column(col, width=100, anchor="center")
             elif col == "statut":
                 self.tree_reperage.column(col, width=100, anchor="center")
@@ -206,9 +262,9 @@ class ReperageTab:
                 self.tree_reperage.column(col, width=120, anchor="w")
         
         # Configuration des tags de couleur
-        self.tree_reperage.tag_configure('reperage', background='#E3F2FD')  # Bleu clair
-        self.tree_reperage.tag_configure('achete', background='#E8F5E8')    # Vert clair
-        self.tree_reperage.tag_configure('perte', background='#FFEBEE')     # Rouge clair
+        self.tree_reperage.tag_configure('reperage', background='#2196F3', foreground='white')  # Bleu avec texte blanc
+        self.tree_reperage.tag_configure('achete', background='#4CAF50', foreground='white')    # Vert avec texte blanc
+        self.tree_reperage.tag_configure('perte', background='#F44336', foreground='white')     # Rouge avec texte blanc
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree_reperage.yview)
@@ -360,15 +416,31 @@ class ReperageTab:
         for item in self.tree_reperage.get_children():
             self.tree_reperage.delete(item)
         
-        # Remplir avec les véhicules en repérage
-        for vehicule in self.data_manager.vehicules_reperage:
-            # Déterminer le tag de couleur selon le statut
-            if vehicule.statut == "Acheté":
-                tags = ("achete",)
-            elif hasattr(vehicule, 'calculer_marge') and vehicule.calculer_marge() < 0:
-                tags = ("perte",)
-            else:
-                tags = ("reperage",)
+        # Transférer les véhicules avec prix d'achat vers les achetés (seulement si pas de recherche)
+        if not hasattr(self, 'var_recherche') or not self.var_recherche.get().strip():
+            vehicules_a_transferer = []
+            for i, vehicule in enumerate(self.data_manager.vehicules_reperage):
+                if vehicule.prix_achat and vehicule.prix_achat.strip() and vehicule.prix_achat != "0":
+                    vehicules_a_transferer.append(i)
+            
+            # Transférer (en commençant par la fin pour ne pas décaler les indices)
+            for i in reversed(vehicules_a_transferer):
+                vehicule = self.data_manager.vehicules_reperage[i]
+                vehicule.marquer_achete()
+                
+                # Ajouter aux achetés s'il n'y est pas déjà
+                if not any(v.lot == vehicule.lot for v in self.data_manager.vehicules_achetes):
+                    self.data_manager.vehicules_achetes.append(vehicule)
+                
+                # Retirer du repérage
+                del self.data_manager.vehicules_reperage[i]
+        
+        # Remplir avec les véhicules en repérage (qui n'ont pas de prix d'achat)
+        vehicules_reperage = self.filtrer_vehicules(self.data_manager.vehicules_reperage)
+        for vehicule in vehicules_reperage:
+            # Seuls les véhicules sans prix d'achat restent ici = bleu
+            tags = ("reperage",)
+            statut = "Repérage"
             
             self.tree_reperage.insert("", "end", values=(
                 vehicule.lot,
@@ -379,8 +451,13 @@ class ReperageTab:
                 vehicule.prix_revente,
                 vehicule.cout_reparations,
                 vehicule.temps_reparations,
-                vehicule.statut
+                vehicule.prix_achat,
+                statut
             ), tags=tags)
+        
+        # Sauvegarder les changements (seulement si pas de recherche)
+        if not hasattr(self, 'var_recherche') or not self.var_recherche.get().strip():
+            self.data_manager.sauvegarder_donnees()
     
     def on_double_click(self, event):
         """Démarre l'édition inline sur double-clic"""
@@ -410,7 +487,7 @@ class ReperageTab:
             current_value = values[col_index] if col_index < len(values) else ""
             
             # Créer le widget d'édition
-            self.edit_entry = tk.Entry(self.tree_reperage)
+            self.edit_entry = tk.Entry(self.tree_reperage, font=('Segoe UI', 14))
             self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
             self.edit_entry.insert(0, str(current_value))
             self.edit_entry.select_range(0, tk.END)
@@ -450,7 +527,7 @@ class ReperageTab:
             vehicule = self.data_manager.vehicules_reperage[index]
             
             # Récupérer le nom de la colonne
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "statut"]
+            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "prix_achat", "statut"]
             col_index = int(self.editing_column.replace('#', '')) - 1
             
             if 0 <= col_index < len(columns_names):
@@ -479,4 +556,28 @@ class ReperageTab:
             self.edit_entry.destroy()
             self.edit_entry = None
         self.editing_item = None
-        self.editing_column = None 
+        self.editing_column = None
+
+    def on_recherche_change(self, *args):
+        """Déclenché quand le texte de recherche change"""
+        self.actualiser()
+
+    def effacer_recherche(self):
+        """Efface la recherche"""
+        self.var_recherche.set("")
+
+    def filtrer_vehicules(self, vehicules):
+        """Filtre les véhicules selon le terme de recherche"""
+        terme = self.var_recherche.get().lower().strip()
+        if not terme:
+            return vehicules
+        
+        vehicules_filtres = []
+        for vehicule in vehicules:
+            # Recherche dans lot, marque et modèle
+            if (terme in vehicule.lot.lower() or 
+                terme in vehicule.marque.lower() or 
+                terme in vehicule.modele.lower()):
+                vehicules_filtres.append(vehicule)
+        
+        return vehicules_filtres 
