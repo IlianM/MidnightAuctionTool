@@ -1,0 +1,8 @@
+{
+  "tarif_horaire": 25.0,
+  "type_marge": "pourcentage",
+  "marge_minimum": 15.0,
+  "commission_encheres": 8.0,
+  "frais_fixes": 200.0,
+  "mode_edition": "double_clic"
+}

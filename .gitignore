@@ -1,0 +1,36 @@
+# Fichiers générés par PyInstaller
+build/
+dist/
+exe_build/
+*.spec
+__pycache__/
+*.pyc
+*.pyo
+
+# Dossiers de distribution
+Gestionnaire_Encheres_Distribution/
+
+# Données utilisateur (optionnel - décommentez si vous ne voulez pas versionner)
+# donnees_encheres.json
+# parametres_encheres.json
+
+# Logs et fichiers temporaires
+*.log
+*.tmp
+*.bak
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environnements virtuels
+venv/
+env/
+.env 
