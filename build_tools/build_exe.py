@@ -52,7 +52,7 @@ def construire_exe():
         'pyinstaller',
         '--onefile',
         '--windowed',
-        '--name=Gestionnaire_Encheres',
+        '--name=MidnightAuctionTool',
         '--hidden-import=customtkinter',
         '--hidden-import=PIL',
         '--hidden-import=PIL._tkinter_finder',
@@ -111,7 +111,7 @@ def creer_package_distribution():
     
     try:
         # Copier l'EXE
-        exe_source = "exe_build/Gestionnaire_Encheres.exe"
+        exe_source = "exe_build/MidnightAuctionTool.exe"
         if os.path.exists(exe_source):
             shutil.copy2(exe_source, dist_folder)
             print("✅ EXE copié")
@@ -136,7 +136,7 @@ def creer_package_distribution():
 
 📋 INSTALLATION:
 1. Aucune installation requise !
-2. Double-cliquez sur "Gestionnaire_Encheres.exe"
+2. Double-cliquez sur "MidnightAuctionTool.exe"
 
 🎯 PREMIÈRE UTILISATION:
 1. Lancez l'application
@@ -192,7 +192,7 @@ def nettoyer_fichiers_temporaires():
 
 def afficher_taille_exe():
     """Affiche la taille de l'EXE créé"""
-    exe_path = "exe_build/Gestionnaire_Encheres.exe"
+    exe_path = "exe_build/MidnightAuctionTool.exe"
     if os.path.exists(exe_path):
         size_mb = os.path.getsize(exe_path) / (1024 * 1024)
         print(f"📏 Taille de l'EXE: {size_mb:.1f} MB")
@@ -235,7 +235,7 @@ def main():
     print(f"⏱️ Temps total: {duration:.1f} secondes")
     print()
     print("📂 Fichiers créés:")
-    print("  • exe_build/Gestionnaire_Encheres.exe")
+    print("  • exe_build/MidnightAuctionTool.exe")
     print("  • Gestionnaire_Encheres_Distribution/ (package complet)")
     print()
     print("✅ PRÊT À DISTRIBUER !")
