@@ -162,6 +162,12 @@ class MainWindow:
     
     def retour_journees(self):
         """Retourne à la sélection des journées"""
+        # Arrêter l'actualisation automatique des onglets
+        if hasattr(self, 'reperage_tab') and hasattr(self.reperage_tab, 'arreter_auto_refresh'):
+            self.reperage_tab.arreter_auto_refresh()
+        if hasattr(self, 'achetes_tab') and hasattr(self.achetes_tab, 'arreter_auto_refresh'):
+            self.achetes_tab.arreter_auto_refresh()
+        
         # Sauvegarder avant de partir
         self.journees_manager.sauvegarder_journee_active()
         
@@ -173,6 +179,10 @@ class MainWindow:
         """Callback appelé quand les données changent"""
         # Sauvegarder la journée active
         self.journees_manager.sauvegarder_journee_active()
+        
+        # Forcer l'actualisation de l'onglet achetés si il existe
+        if hasattr(self, 'achetes_tab'):
+            self.achetes_tab.actualiser()
         
         # Mettre à jour la barre de navigation
         self.actualiser_barre_navigation()
@@ -197,6 +207,21 @@ class MainWindow:
         # Cette méthode peut être appelée pour actualiser les stats
         # Pour l'instant, on recrée simplement la barre
         pass
+    
+    def fermer_application(self):
+        """Ferme proprement l'application"""
+        # Arrêter l'actualisation automatique des onglets
+        if hasattr(self, 'reperage_tab') and hasattr(self.reperage_tab, 'arreter_auto_refresh'):
+            self.reperage_tab.arreter_auto_refresh()
+        if hasattr(self, 'achetes_tab') and hasattr(self.achetes_tab, 'arreter_auto_refresh'):
+            self.achetes_tab.arreter_auto_refresh()
+        
+        # Sauvegarder avant de fermer
+        self.journees_manager.sauvegarder_journee_active()
+        
+        # Fermer la fenêtre
+        self.root.quit()
+        self.root.destroy()
 
 
 class JourneeDataAdapter:

@@ -173,8 +173,9 @@ class DialogJournee:
         self.dialog = tk.Toplevel(parent)
         title = "Nouvelle base de données" if mode == "create" else "Modifier la base de données"
         self.dialog.title(title)
-        self.dialog.geometry("600x500")
-        self.dialog.resizable(False, False)
+        self.dialog.geometry("600x600")  # Plus petite sans description
+        self.dialog.resizable(True, True)  # RENDABLE REDIMENSIONNABLE
+        self.dialog.minsize(700, 700)     # Taille minimale
         
         # Centrer la dialog
         self.center_dialog()
@@ -186,10 +187,21 @@ class DialogJournee:
         # Variables
         self.vars = {
             'nom': tk.StringVar(value=self.journee_info.get('nom', '')),
-            'date': tk.StringVar(value=self.journee_info.get('date', datetime.now().strftime("%Y-%m-%d"))),
-            'lieu': tk.StringVar(value=self.journee_info.get('lieu', '')),
-            'description': tk.StringVar(value=self.journee_info.get('description', ''))
+            'lieu': tk.StringVar(value=self.journee_info.get('lieu', ''))
         }
+        
+        # Date avec widget calendrier
+        date_existante = self.journee_info.get('date', '')
+        if date_existante:
+            try:
+                from datetime import datetime
+                self.date_selectionnee = datetime.strptime(date_existante, "%Y-%m-%d").date()
+            except:
+                from datetime import date
+                self.date_selectionnee = date.today()
+        else:
+            from datetime import date
+            self.date_selectionnee = date.today()
         
         # Créer l'interface
         self.create_interface()
@@ -209,7 +221,7 @@ class DialogJournee:
         self.dialog.update_idletasks()
         
         width = 600
-        height = 500
+        height = 600
         
         pos_x = (self.dialog.winfo_screenwidth() // 2) - (width // 2)
         pos_y = (self.dialog.winfo_screenheight() // 2) - (height // 2)
@@ -218,119 +230,152 @@ class DialogJournee:
     
     def create_interface(self):
         """Crée l'interface de la dialog"""
-        # Frame principal
-        main_frame = tk.Frame(self.dialog, bg='white', padx=30, pady=30)
-        main_frame.pack(fill='both', expand=True)
+        # Frame principal avec scrollbar pour gérer le redimensionnement
+        main_canvas = tk.Canvas(self.dialog, bg='white')
+        scrollbar = tk.Scrollbar(self.dialog, orient="vertical", command=main_canvas.yview)
+        self.scrollable_frame = tk.Frame(main_canvas, bg='white')
         
-        # Titre
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+        )
+        
+        main_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        main_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack du canvas avec redimensionnement adaptatif
+        main_canvas.pack(side="left", fill="both", expand=True, padx=30, pady=30)
+        scrollbar.pack(side="right", fill="y", pady=30)
+        
+        # Titre plus grand
         title_text = "🗃️ NOUVELLE BASE DE DONNÉES" if self.mode == "create" else "✏️ MODIFIER LA BASE DE DONNÉES"
         title_label = tk.Label(
-            main_frame,
+            self.scrollable_frame,
             text=title_text,
-            font=('Segoe UI', 20, 'bold'),
+            font=('Segoe UI', 24, 'bold'),  # Police plus grande
             bg='white',
             fg='#2E86AB'
         )
-        title_label.pack(pady=(0, 20))
+        title_label.pack(pady=(20, 25))  # Plus d'espace
         
-        # Information
+        # Information avec police plus grande
         info_text = "Chaque base de données est complètement séparée\navec ses propres véhicules et paramètres."
         info_label = tk.Label(
-            main_frame,
+            self.scrollable_frame,
             text=info_text,
-            font=('Segoe UI', 11),
+            font=('Segoe UI', 14),  # Police plus grande
             bg='white',
             fg='#666666'
         )
-        info_label.pack(pady=(0, 20))
+        info_label.pack(pady=(0, 30))  # Plus d'espace
         
-        # Formulaire
-        form_frame = tk.Frame(main_frame, bg='white')
+        # Formulaire avec plus d'espace
+        form_frame = tk.Frame(self.scrollable_frame, bg='white')
         form_frame.pack(fill='x', pady=(0, 30))
         
-        # Nom de l'enchère
-        self.create_field(form_frame, "Nom de l'enchère:", self.vars['nom'], 0)
+        # Nom de l'enchère avec champ plus grand
+        self.create_field(form_frame, "Nom de l'enchère:", self.vars['nom'], 0, height=40)
         self.entry_nom = self.last_entry
         
-        # Date
-        self.create_field(form_frame, "Date (YYYY-MM-DD):", self.vars['date'], 1)
-        
-        # Lieu
-        self.create_field(form_frame, "Lieu:", self.vars['lieu'], 2)
-        
-        # Description
+        # Date avec calendrier plus grand
         tk.Label(
             form_frame,
-            text="Description:",
-            font=('Segoe UI', 14, 'bold'),
+            text="Date:",
+            font=('Segoe UI', 16, 'bold'),  # Police plus grande
             bg='white',
             fg='#333333'
-        ).grid(row=3, column=0, sticky='nw', pady=(10, 5), padx=(0, 15))
+        ).grid(row=1, column=0, sticky='w', pady=(15, 10), padx=(0, 20))
         
-        self.text_description = tk.Text(
-            form_frame,
-            font=('Segoe UI', 12),
-            height=4,
-            relief='solid',
-            borderwidth=1
-        )
-        self.text_description.grid(row=3, column=1, sticky='ew', pady=(10, 5))
-        self.text_description.insert('1.0', self.vars['description'].get())
+        try:
+            from tkcalendar import DateEntry
+            self.date_entry = DateEntry(
+                form_frame,
+                width=15,  # Plus large
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                font=('Segoe UI', 14),  # Police plus grande
+                date_pattern='dd/mm/yyyy',
+                year=self.date_selectionnee.year,
+                month=self.date_selectionnee.month,
+                day=self.date_selectionnee.day
+            )
+            self.date_entry.grid(row=1, column=1, sticky='ew', pady=(15, 10), ipady=10)  # Plus de padding
+        except ImportError:
+            # Fallback vers champ texte si tkcalendar n'est pas disponible
+            date_str = self.date_selectionnee.strftime("%d/%m/%Y")
+            self.vars['date'] = tk.StringVar(value=date_str)
+            self.date_entry = tk.Entry(
+                form_frame,
+                textvariable=self.vars['date'],
+                font=('Segoe UI', 14),
+                relief='solid',
+                borderwidth=1
+            )
+            self.date_entry.grid(row=1, column=1, sticky='ew', pady=(15, 10), ipady=10)
         
-        # Configuration du grid
+        # Lieu avec champ plus grand
+        self.create_field(form_frame, "Lieu:", self.vars['lieu'], 2, height=40)
+        
+        # Configuration du grid pour adaptation
         form_frame.grid_columnconfigure(1, weight=1)
         
-        # Boutons
-        buttons_frame = tk.Frame(main_frame, bg='white')
-        buttons_frame.pack(fill='x')
+        # Boutons plus grands
+        buttons_frame = tk.Frame(self.scrollable_frame, bg='white')
+        buttons_frame.pack(fill='x', pady=(30, 20))
         
-        # Bouton Annuler
+        # Bouton Annuler plus grand
         cancel_btn = tk.Button(
             buttons_frame,
             text="❌ Annuler",
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 16, 'bold'),  # Plus grand
             bg='#F44336',
             fg='white',
             relief='flat',
-            padx=20,
-            pady=10,
+            padx=25,  # Plus de padding
+            pady=12,
             command=self.on_cancel
         )
-        cancel_btn.pack(side='left', padx=(0, 10))
+        cancel_btn.pack(side='left', padx=(0, 15))
         
-        # Bouton OK
+        # Bouton OK plus grand
         ok_text = "✅ Créer" if self.mode == "create" else "✅ Modifier"
         ok_btn = tk.Button(
             buttons_frame,
             text=ok_text,
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 16, 'bold'),  # Plus grand
             bg='#4CAF50',
             fg='white',
             relief='flat',
-            padx=20,
-            pady=10,
+            padx=25,  # Plus de padding
+            pady=12,
             command=self.on_ok
         )
-        ok_btn.pack(side='right', padx=(10, 0))
+        ok_btn.pack(side='right', padx=(15, 0))
+        
+        # Bind mouse wheel pour scroll
+        def _on_mousewheel(event):
+            main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
     
-    def create_field(self, parent, label_text, var, row):
-        """Crée un champ de formulaire"""
+    def create_field(self, parent, label_text, var, row, height=30):
+        """Crée un champ de formulaire avec hauteur configurable"""
         tk.Label(
             parent,
             text=label_text,
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 16, 'bold'),  # Police plus grande
             bg='white',
             fg='#333333'
-        ).grid(row=row, column=0, sticky='w', pady=(10, 5), padx=(0, 15))
+        ).grid(row=row, column=0, sticky='w', pady=(15, 10), padx=(0, 20))
         
         entry = tk.Entry(
             parent,
             textvariable=var,
-            font=('Segoe UI', 12),
+            font=('Segoe UI', 14),  # Police plus grande
             relief='solid',
             borderwidth=1
         )
-        entry.grid(row=row, column=1, sticky='ew', pady=(10, 5), ipady=5)
+        entry.grid(row=row, column=1, sticky='ew', pady=(15, 10), ipady=10)  # Plus de padding vertical
         
         self.last_entry = entry
     
@@ -341,11 +386,31 @@ class DialogJournee:
             messagebox.showerror("Erreur", "Le nom de l'enchère est obligatoire")
             return
         
+        # Récupérer la date
+        try:
+            if hasattr(self.date_entry, 'get_date'):
+                # Widget calendrier
+                date_obj = self.date_entry.get_date()
+                date_str = date_obj.strftime("%Y-%m-%d")
+            else:
+                # Champ texte fallback
+                date_input = self.date_entry.get()
+                if '/' in date_input:
+                    # Format DD/MM/YYYY vers YYYY-MM-DD
+                    from datetime import datetime
+                    date_obj = datetime.strptime(date_input, "%d/%m/%Y")
+                    date_str = date_obj.strftime("%Y-%m-%d")
+                else:
+                    date_str = date_input
+        except:
+            from datetime import date
+            date_str = date.today().strftime("%Y-%m-%d")
+        
         self.result = {
             'nom': nom,
-            'date': self.vars['date'].get().strip(),
+            'date': date_str,
             'lieu': self.vars['lieu'].get().strip(),
-            'description': self.text_description.get('1.0', 'end-1c').strip()
+            'description': ''  # Toujours vide maintenant
         }
         
         self.dialog.destroy()

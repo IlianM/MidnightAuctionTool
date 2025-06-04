@@ -6,7 +6,17 @@ Onglet de repérage des véhicules - CustomTkinter
 
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
+from datetime import datetime
+import os
+
+# Imports pour l'export PDF
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
 
 from config.settings import AppSettings
 from utils.tooltips import ajouter_tooltip, TOOLTIPS
@@ -31,8 +41,16 @@ class ReperageTab:
         self.editing_item = None
         self.editing_column = None
         
+        # Variables pour l'actualisation automatique
+        self.auto_refresh_enabled = True
+        self.auto_refresh_interval = 500
+        self.last_data_hash = None
+        
         # Créer l'interface directement dans le parent (onglet du TabView)
         self.creer_interface()
+        
+        # Démarrer l'actualisation automatique
+        self.demarrer_auto_refresh()
     
     def creer_interface(self):
         """Crée l'interface complète de l'onglet repérage avec CustomTkinter"""
@@ -187,13 +205,87 @@ class ReperageTab:
         row2 = ctk.CTkFrame(grid_frame)
         row2.pack(fill="x", pady=5)
         
-        # Kilométrage
+        # Kilométrage avec formatage automatique en temps réel
         km_label = ctk.CTkLabel(row2, text="KM:", width=80)
         km_label.pack(side="left", padx=5)
         km_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['kilometrage'], width=100)
         km_entry.pack(side="left", padx=5)
+        
+        # Bind pour formatage automatique en temps réel
+        def formater_kilometrage_temps_reel(*args):
+            """Formate le kilométrage en temps réel pendant la saisie"""
+            valeur = self.vars_saisie['kilometrage'].get()
+            
+            # Éviter les boucles infinies
+            if hasattr(formater_kilometrage_temps_reel, 'en_cours'):
+                return
+            formater_kilometrage_temps_reel.en_cours = True
+            
+            try:
+                # Garder la position du curseur
+                position_curseur = km_entry.index(tk.INSERT)
+                
+                # Enlever tout ce qui n'est pas un chiffre pour le calcul
+                chiffres_seulement = ''.join(filter(str.isdigit, valeur))
+                
+                if chiffres_seulement and not valeur.endswith('km'):
+                    km = int(chiffres_seulement)
+                    ancienne_valeur = valeur
+                    
+                    # Appliquer le formatage selon la taille
+                    if 1 <= km <= 999:  # Probablement en milliers
+                        nouvelle_valeur = f"{km},000km"
+                    elif km >= 1000:  # Valeur exacte
+                        if km >= 100000:
+                            # Formater avec espaces pour les gros nombres
+                            nouvelle_valeur = f"{km:,}km".replace(',', ' ')
+                        else:
+                            nouvelle_valeur = f"{km}km"
+                    else:
+                        nouvelle_valeur = valeur
+                    
+                    # Mettre à jour seulement si différent pour éviter boucles
+                    if nouvelle_valeur != ancienne_valeur:
+                        self.vars_saisie['kilometrage'].set(nouvelle_valeur)
+                        # Restaurer la position du curseur si possible
+                        try:
+                            km_entry.icursor(min(position_curseur, len(nouvelle_valeur)))
+                        except:
+                            pass
+            except:
+                pass
+            finally:
+                if hasattr(formater_kilometrage_temps_reel, 'en_cours'):
+                    del formater_kilometrage_temps_reel.en_cours
+        
+        # Bind pour formatage en temps réel
+        self.vars_saisie['kilometrage'].trace('w', formater_kilometrage_temps_reel)
+        
+        # Bind traditionnel pour la sortie de focus (sécurité)
+        def formater_kilometrage_focus(event):
+            """Formatage de sécurité au focus"""
+            valeur = self.vars_saisie['kilometrage'].get().strip()
+            if valeur and not valeur.endswith('km'):
+                try:
+                    chiffres_seulement = ''.join(filter(str.isdigit, valeur))
+                    if chiffres_seulement:
+                        km = int(chiffres_seulement)
+                        if 1 <= km <= 999:
+                            valeur_formatee = f"{km},000km"
+                            self.vars_saisie['kilometrage'].set(valeur_formatee)
+                        elif km >= 1000:
+                            if km >= 100000:
+                                valeur_formatee = f"{km:,}km".replace(',', ' ')
+                            else:
+                                valeur_formatee = f"{km}km"
+                            self.vars_saisie['kilometrage'].set(valeur_formatee)
+                except:
+                    pass
+        
+        km_entry.bind('<FocusOut>', formater_kilometrage_focus)
+        
         ajouter_tooltip(km_label, TOOLTIPS['kilometrage'])
-        ajouter_tooltip(km_entry, TOOLTIPS['kilometrage'])
+        ajouter_tooltip(km_entry, "Kilométrage du véhicule. Tapez juste le nombre (ex: 330 devient automatiquement 330,000km en temps réel)")
         
         # Prix revente
         prix_rev_label = ctk.CTkLabel(row2, text="PRIX REVENTE:", width=100)
@@ -219,15 +311,15 @@ class ReperageTab:
         ajouter_tooltip(temps_rep_label, TOOLTIPS['temps_reparations'])
         ajouter_tooltip(temps_rep_entry, TOOLTIPS['temps_reparations'])
         
-        # Ligne 3: Description
+        # Ligne 3: Description des réparations
         row3 = ctk.CTkFrame(grid_frame)
         row3.pack(fill="x", pady=5)
         
-        desc_label = ctk.CTkLabel(row3, text="DESCRIPTION:", width=100)
+        desc_label = ctk.CTkLabel(row3, text="DESCRIPTION RÉPARATIONS:", width=180)
         desc_entry = ctk.CTkEntry(row3, textvariable=self.vars_saisie['chose_a_faire'], width=400)
         desc_entry.pack(side="left", padx=5, fill="x", expand=True)
-        ajouter_tooltip(desc_label, TOOLTIPS['chose_a_faire'])
-        ajouter_tooltip(desc_entry, TOOLTIPS['chose_a_faire'])
+        ajouter_tooltip(desc_label, "Description détaillée des réparations à effectuer sur le véhicule")
+        ajouter_tooltip(desc_entry, "Description détaillée des réparations à effectuer sur le véhicule")
         
         # Boutons de saisie
         buttons_frame = ctk.CTkFrame(frame_saisie)
@@ -269,16 +361,16 @@ class ReperageTab:
         container.pack(fill="both", expand=True, padx=20, pady=(0, 15))
         container.configure(height=250)  # Hauteur minimale de 250px
         
-        # Tableau (MODIFIÉ : ajout colonne prix_max)
-        columns = ("lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "prix_max", "prix_achat", "statut")
+        # Tableau (MODIFIÉ : ajout colonne description_reparations)
+        columns = ("lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut")
         self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=8)  # Hauteur optimisée
         
         # Configuration du style pour agrandir la police
         style = ttk.Style()
         style.configure("Treeview", font=('Segoe UI', 14), rowheight=30)
-        style.configure("Treeview.Heading", font=('Segoe UI', 16, 'bold'))
+        style.configure("Treeview.Heading", font=('Segoe UI', 16, 'bold'))  # Police plus petite pour les en-têtes
         
-        # Configuration des colonnes (MODIFIÉE avec Prix Max)
+        # Configuration des colonnes (MODIFIÉE avec Description et Prix Max)
         headings = {
             "lot": "LOT",
             "marque": "MARQUE",
@@ -288,7 +380,8 @@ class ReperageTab:
             "prix_revente": "PRIX REVENTE",
             "cout_reparations": "COÛT RÉPAR",
             "temps_reparations": "TEMPS (h)",
-            "prix_max": "PRIX MAX",  # NOUVEAU
+            "description_reparations": "DESCRIPTION RÉPAR",  # NOUVEAU
+            "prix_max": "PRIX MAX",
             "prix_achat": "PRIX ACHAT",
             "statut": "STATUT"
         }
@@ -301,6 +394,8 @@ class ReperageTab:
                 self.tree_reperage.column(col, width=100, anchor="center")
             elif col == "statut":
                 self.tree_reperage.column(col, width=100, anchor="center")
+            elif col == "description_reparations":
+                self.tree_reperage.column(col, width=200, anchor="w")  # Plus large pour la description
             else:
                 self.tree_reperage.column(col, width=120, anchor="w")
         
@@ -366,6 +461,16 @@ class ReperageTab:
         buy_button.pack(side="left", padx=10, pady=15)
         ajouter_tooltip(buy_button, TOOLTIPS['btn_marquer_achete'])
         
+        # Bouton export PDF
+        export_pdf_button = ctk.CTkButton(
+            actions_frame,
+            text="📄 Exporter PDF",
+            command=self.exporter_pdf,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        export_pdf_button.pack(side="left", padx=10, pady=15)
+        ajouter_tooltip(export_pdf_button, "Exporter les véhicules en repérage vers un document PDF professionnel")
+        
         refresh_button = ctk.CTkButton(
             actions_frame,
             text="🔄 Actualiser",
@@ -375,6 +480,102 @@ class ReperageTab:
         refresh_button.pack(side="right", padx=20, pady=15)
         ajouter_tooltip(refresh_button, TOOLTIPS['btn_actualiser'])
     
+    def demarrer_auto_refresh(self):
+        """Démarre l'actualisation automatique périodique"""
+        if self.auto_refresh_enabled:
+            self.auto_refresh()
+    
+    def auto_refresh(self):
+        """Actualise automatiquement si les données ont changé"""
+        try:
+            # Créer un hash des données pour détecter les changements
+            current_hash = self.calculer_hash_donnees()
+            
+            if current_hash != self.last_data_hash:
+                # Les données ont changé, actualiser silencieusement
+                self.actualiser_silencieux()
+                self.last_data_hash = current_hash
+            
+            # Programmer la prochaine actualisation
+            if self.auto_refresh_enabled and hasattr(self.parent, 'winfo_exists') and self.parent.winfo_exists():
+                self.parent.after(self.auto_refresh_interval, self.auto_refresh)
+                
+        except Exception as e:
+            # En cas d'erreur, continuer sans planter
+            print(f"⚠️ Erreur auto-refresh repérage: {e}")
+            if self.auto_refresh_enabled and hasattr(self.parent, 'winfo_exists') and self.parent.winfo_exists():
+                self.parent.after(self.auto_refresh_interval, self.auto_refresh)
+    
+    def calculer_hash_donnees(self):
+        """Calcule un hash des données pour détecter les changements"""
+        try:
+            # Créer une représentation des données importantes
+            data_repr = []
+            
+            # Ajouter les véhicules de repérage
+            for v in self.data_adapter.vehicules_reperage:
+                data_repr.append(f"{v.lot}|{v.marque}|{v.modele}|{v.prix_revente}|{v.cout_reparations}|{v.temps_reparations}")
+            
+            # Ajouter les paramètres de la journée
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                parametres = self.data_adapter.journee.parametres
+                data_repr.append(f"params:{parametres.get('tarif_horaire', 0)}|{parametres.get('commission_vente', 0)}|{parametres.get('marge_securite', 0)}")
+            
+            # Retourner un hash simple
+            return hash('|'.join(data_repr))
+            
+        except Exception:
+            return None
+    
+    def actualiser_silencieux(self):
+        """Actualise sans messages d'erreur visibles"""
+        try:
+            self.actualiser_tableaux_seulement()
+        except Exception:
+            pass  # Ignorer les erreurs pour éviter les popups
+    
+    def actualiser_tableaux_seulement(self):
+        """Met à jour uniquement les tableaux sans messages"""
+        # Effacer le tableau
+        if self.tree_reperage and self.tree_reperage.winfo_exists():
+            for item in self.tree_reperage.get_children():
+                self.tree_reperage.delete(item)
+        
+        # Recalculer les prix max avec les paramètres de la journée
+        for vehicule in self.data_adapter.vehicules_reperage:
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                # Utiliser les paramètres de la journée
+                vehicule.mettre_a_jour_prix_max_avec_parametres(self.data_adapter.journee.parametres)
+            else:
+                # Fallback vers settings
+                vehicule.mettre_a_jour_prix_max(self.settings)
+        
+        # Remplir avec les véhicules en repérage
+        vehicules_reperage = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+        for vehicule in vehicules_reperage:
+            tags = ("reperage",)
+            statut = "Repérage"
+            
+            if self.tree_reperage and self.tree_reperage.winfo_exists():
+                self.tree_reperage.insert("", "end", values=(
+                    vehicule.lot,
+                    vehicule.marque,
+                    vehicule.modele,
+                    vehicule.annee,
+                    vehicule.kilometrage,
+                    vehicule.prix_revente,
+                    vehicule.cout_reparations,
+                    vehicule.temps_reparations,
+                    vehicule.chose_a_faire,  # Description des réparations
+                    vehicule.prix_max_achat,  # Prix Max calculé avec les paramètres de la journée
+                    vehicule.prix_achat,
+                    statut
+                ), tags=tags)
+    
+    def arreter_auto_refresh(self):
+        """Arrête l'actualisation automatique"""
+        self.auto_refresh_enabled = False
+
     def ajouter_vehicule(self):
         """Ajoute un véhicule au repérage avec calcul automatique du prix max"""
         # Validation basique
@@ -396,8 +597,11 @@ class ReperageTab:
                 'temps_reparations': self.vars_saisie['temps_reparations'].get()
             })
             
-            # Calculer automatiquement le prix max
-            vehicule.mettre_a_jour_prix_max(self.settings)
+            # Calculer automatiquement le prix max avec les paramètres de la journée
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                vehicule.mettre_a_jour_prix_max_avec_parametres(self.data_adapter.journee.parametres)
+            else:
+                vehicule.mettre_a_jour_prix_max(self.settings)
             
             # Ajouter au data manager
             self.data_adapter.ajouter_vehicule(vehicule)
@@ -483,9 +687,14 @@ class ReperageTab:
         for item in self.tree_reperage.get_children():
             self.tree_reperage.delete(item)
         
-        # Recalculer les prix max pour tous les véhicules
+        # Recalculer les prix max pour tous les véhicules avec les paramètres de la journée
         for vehicule in self.data_adapter.vehicules_reperage:
-            vehicule.mettre_a_jour_prix_max(self.settings)
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                # Utiliser les paramètres spécifiques de la journée
+                vehicule.mettre_a_jour_prix_max_avec_parametres(self.data_adapter.journee.parametres)
+            else:
+                # Fallback vers settings globaux
+                vehicule.mettre_a_jour_prix_max(self.settings)
         
         # Transférer les véhicules avec prix d'achat vers les achetés (seulement si pas de recherche)
         if not hasattr(self, 'var_recherche') or not self.var_recherche.get().strip():
@@ -497,6 +706,8 @@ class ReperageTab:
             # Transférer (en commençant par la fin pour ne pas décaler les indices)
             for i in reversed(vehicules_a_transferer):
                 vehicule = self.data_adapter.vehicules_reperage[i]
+                
+                # Marquer comme acheté avec date
                 vehicule.marquer_achete()
                 
                 # Ajouter aux achetés s'il n'y est pas déjà
@@ -505,6 +716,14 @@ class ReperageTab:
                 
                 # Retirer du repérage
                 del self.data_adapter.vehicules_reperage[i]
+            
+            # Sauvegarder immédiatement après transfert
+            if vehicules_a_transferer:
+                self.data_adapter.sauvegarder_donnees()
+                
+                # Notifier les changements pour actualiser l'onglet achetés
+                if self.on_data_changed:
+                    self.on_data_changed()
         
         # Remplir avec les véhicules en repérage (qui n'ont pas de prix d'achat)
         vehicules_reperage = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
@@ -522,7 +741,8 @@ class ReperageTab:
                 vehicule.prix_revente,
                 vehicule.cout_reparations,
                 vehicule.temps_reparations,
-                vehicule.prix_max_achat,  # NOUVEAU : Prix Max calculé
+                vehicule.chose_a_faire,  # Description des réparations
+                vehicule.prix_max_achat,  # Prix Max calculé avec paramètres spécifiques
                 vehicule.prix_achat,
                 statut
             ), tags=tags)
@@ -530,6 +750,185 @@ class ReperageTab:
         # Sauvegarder les changements (seulement si pas de recherche)
         if not hasattr(self, 'var_recherche') or not self.var_recherche.get().strip():
             self.data_adapter.sauvegarder_donnees()
+        
+        # Mettre à jour le hash pour l'auto-refresh
+        self.last_data_hash = self.calculer_hash_donnees()
+    
+    def exporter_pdf(self):
+        """Exporte les données de repérage vers un fichier PDF professionnel"""
+        try:
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("Fichiers PDF", "*.pdf")],
+                title="Exporter les véhicules en repérage en PDF"
+            )
+            
+            if filename:
+                # Créer le document PDF avec marges
+                doc = SimpleDocTemplate(
+                    filename, 
+                    pagesize=A4,
+                    rightMargin=50,
+                    leftMargin=50,
+                    topMargin=50,
+                    bottomMargin=50
+                )
+                elements = []
+                styles = getSampleStyleSheet()
+                
+                # Style personnalisé pour le titre
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=18,
+                    textColor=colors.HexColor('#2196F3'),
+                    spaceAfter=30,
+                    alignment=1  # Centré
+                )
+                
+                # Récupérer le nom de la journée
+                journee_nom = "Enchère"
+                if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                    journee_nom = self.data_adapter.journee.nom
+                
+                # Titre principal
+                titre = f"🔍 RAPPORT VÉHICULES EN REPÉRAGE - {journee_nom.upper()}"
+                elements.append(Paragraph(titre, title_style))
+                
+                # Date du rapport
+                date_rapport = datetime.now().strftime("%d/%m/%Y à %H:%M")
+                date_style = ParagraphStyle(
+                    'DateStyle',
+                    parent=styles['Normal'],
+                    fontSize=10,
+                    textColor=colors.grey,
+                    alignment=1,
+                    spaceAfter=20
+                )
+                elements.append(Paragraph(f"Rapport généré le {date_rapport}", date_style))
+                
+                # Statistiques
+                nb_reperage = len(self.data_adapter.vehicules_reperage)
+                prix_max_total = sum(v.get_prix_numerique('prix_max_achat') for v in self.data_adapter.vehicules_reperage)
+                prix_revente_total = sum(v.get_prix_numerique('prix_revente') for v in self.data_adapter.vehicules_reperage if v.prix_revente and v.prix_revente.strip())
+                marge_potentielle_total = sum(
+                    v.get_prix_numerique('prix_revente') - v.get_prix_numerique('prix_max_achat') 
+                    for v in self.data_adapter.vehicules_reperage 
+                    if v.prix_revente and v.prix_revente.strip() and v.prix_max_achat and v.prix_max_achat.strip()
+                )
+                
+                stats_text = f"""
+                <b>📊 STATISTIQUES DE REPÉRAGE</b><br/>
+                • Nombre de véhicules en repérage : <b>{nb_reperage}</b><br/>
+                • Budget maximum total : <b>{prix_max_total:,.0f}€</b><br/>
+                • Potentiel de revente total : <b>{prix_revente_total:,.0f}€</b><br/>
+                • Marge potentielle totale : <b>{marge_potentielle_total:+,.0f}€</b>
+                """
+                
+                stats_style = ParagraphStyle(
+                    'StatsStyle',
+                    parent=styles['Normal'],
+                    fontSize=12,
+                    spaceAfter=30,
+                    backColor=colors.HexColor('#F5F5F5'),
+                    borderColor=colors.HexColor('#2196F3'),
+                    borderWidth=1,
+                    borderPadding=10
+                )
+                elements.append(Paragraph(stats_text, stats_style))
+                elements.append(Spacer(1, 20))
+                
+                # Titre du tableau
+                table_title = Paragraph("<b>📋 DÉTAIL DES VÉHICULES EN REPÉRAGE</b>", styles['Heading2'])
+                elements.append(table_title)
+                elements.append(Spacer(1, 10))
+                
+                # Données du tableau
+                data = [
+                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "KM", "PRIX REVENTE", "PRIX MAX", "COÛT RÉPAR", "TEMPS (h)"]
+                ]
+                
+                for vehicule in self.data_adapter.vehicules_reperage:
+                    prix_revente = vehicule.get_prix_numerique('prix_revente')
+                    prix_max = vehicule.get_prix_numerique('prix_max_achat')
+                    cout_reparations = vehicule.get_prix_numerique('cout_reparations')
+                    temps_reparations = vehicule.get_prix_numerique('temps_reparations')
+                    
+                    data.append([
+                        vehicule.lot,
+                        vehicule.marque,
+                        vehicule.modele,
+                        vehicule.annee,
+                        vehicule.kilometrage,
+                        f"{prix_revente:.0f}€" if prix_revente > 0 else "-",
+                        f"{prix_max:.0f}€" if prix_max > 0 else "-",
+                        f"{cout_reparations:.0f}€" if cout_reparations > 0 else "-",
+                        f"{temps_reparations:.0f}h" if temps_reparations > 0 else "-"
+                    ])
+                
+                # Créer le tableau
+                table = Table(data, colWidths=[0.8*inch, 1.2*inch, 1.2*inch, 0.8*inch, 1*inch, 1*inch, 1*inch, 1*inch, 0.8*inch])
+                
+                # Style du tableau
+                table.setStyle(TableStyle([
+                    # En-tête
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2196F3')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    
+                    # Corps du tableau
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    
+                    # Alternance de couleurs pour les lignes
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')])
+                ]))
+                
+                elements.append(table)
+                
+                # Section descriptions si présentes
+                descriptions_avec_vehicules = [
+                    (v, v.chose_a_faire) for v in self.data_adapter.vehicules_reperage 
+                    if v.chose_a_faire and v.chose_a_faire.strip()
+                ]
+                
+                if descriptions_avec_vehicules:
+                    elements.append(Spacer(1, 30))
+                    desc_title = Paragraph("<b>🔧 DESCRIPTIONS DES RÉPARATIONS</b>", styles['Heading2'])
+                    elements.append(desc_title)
+                    elements.append(Spacer(1, 10))
+                    
+                    for vehicule, description in descriptions_avec_vehicules:
+                        desc_text = f"<b>Lot {vehicule.lot} ({vehicule.marque} {vehicule.modele}):</b> {description}"
+                        desc_para = Paragraph(desc_text, styles['Normal'])
+                        elements.append(desc_para)
+                        elements.append(Spacer(1, 5))
+                
+                # Pied de page
+                elements.append(Spacer(1, 30))
+                footer_style = ParagraphStyle(
+                    'FooterStyle',
+                    parent=styles['Normal'],
+                    fontSize=8,
+                    textColor=colors.grey,
+                    alignment=1
+                )
+                footer_text = f"Gestionnaire d'Enchères - Rapport de repérage généré automatiquement - {date_rapport}"
+                elements.append(Paragraph(footer_text, footer_style))
+                
+                # Construire le document
+                doc.build(elements)
+                
+                messagebox.showinfo("✅ Succès", f"Export PDF réussi vers:\n{filename}")
+                
+        except Exception as e:
+            messagebox.showerror("❌ Erreur", f"Erreur lors de l'export PDF: {e}")
     
     def on_double_click(self, event):
         """Démarre l'édition inline sur double-clic (MODIFIÉE : interdiction statut et prix_max)"""
@@ -546,7 +945,7 @@ class ReperageTab:
             
             # Vérifier si la colonne peut être éditée
             col_index = int(column.replace('#', '')) - 1
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "prix_max", "prix_achat", "statut"]
+            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut"]
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
@@ -572,8 +971,8 @@ class ReperageTab:
             values = self.tree_reperage.item(item)['values']
             current_value = values[col_index] if col_index < len(values) else ""
             
-            # Créer le widget d'édition
-            self.edit_entry = tk.Entry(self.tree_reperage, font=('Segoe UI', 14))
+            # Créer le widget d'édition avec police normale
+            self.edit_entry = tk.Entry(self.tree_reperage, font=('Segoe UI', 20))
             self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
             self.edit_entry.insert(0, str(current_value))
             self.edit_entry.select_range(0, tk.END)
@@ -613,27 +1012,57 @@ class ReperageTab:
             vehicule = self.data_adapter.vehicules_reperage[index]
             
             # Récupérer le nom de la colonne
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "prix_max", "prix_achat", "statut"]
+            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut"]
             col_index = int(self.editing_column.replace('#', '')) - 1
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
                 
-                # Mettre à jour le véhicule
-                setattr(vehicule, col_name, new_value)
+                # Mapper description_reparations vers chose_a_faire dans le modèle
+                if col_name == "description_reparations":
+                    setattr(vehicule, "chose_a_faire", new_value)
+                else:
+                    # Mettre à jour le véhicule
+                    setattr(vehicule, col_name, new_value)
                 
-                # Recalculer le prix max si les données financières ont changé
-                if col_name in ["prix_revente", "cout_reparations", "temps_reparations"]:
-                    vehicule.mettre_a_jour_prix_max(self.settings)
+                # Cas spécial pour prix_achat : arrêter temporairement l'auto-refresh
+                if col_name == "prix_achat" and new_value and new_value.strip() and new_value != "0":
+                    # Arrêter temporairement l'auto-refresh pour éviter les conflits
+                    old_auto_refresh = self.auto_refresh_enabled
+                    self.auto_refresh_enabled = False
+                    
+                    try:
+                        # Actualiser immédiatement pour transférer
+                        self.actualiser()
+                        
+                        # Notifier les changements
+                        if self.on_data_changed:
+                            self.on_data_changed()
+                        
+                    finally:
+                        # Relancer l'auto-refresh après un délai
+                        def relancer_auto_refresh():
+                            self.auto_refresh_enabled = old_auto_refresh
+                            if self.auto_refresh_enabled:
+                                self.demarrer_auto_refresh()
+                        
+                        # Relancer après 2 secondes
+                        self.parent.after(2000, relancer_auto_refresh)
                 
-                # Sauvegarder
-                self.data_adapter.sauvegarder_donnees()
-                
-                # Actualiser l'affichage
-                self.actualiser()
-                
-                if self.on_data_changed:
-                    self.on_data_changed()
+                else:
+                    # Modification normale - recalculer le prix max si nécessaire
+                    if col_name in ["prix_revente", "cout_reparations", "temps_reparations"]:
+                        if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                            vehicule.mettre_a_jour_prix_max_avec_parametres(self.data_adapter.journee.parametres)
+                        else:
+                            vehicule.mettre_a_jour_prix_max(self.settings)
+                    
+                    # Sauvegarder et actualiser normalement
+                    self.data_adapter.sauvegarder_donnees()
+                    self.actualiser()
+                    
+                    if self.on_data_changed:
+                        self.on_data_changed()
                 
         except Exception as e:
             messagebox.showerror("❌ Erreur", f"Erreur lors de la sauvegarde: {e}")

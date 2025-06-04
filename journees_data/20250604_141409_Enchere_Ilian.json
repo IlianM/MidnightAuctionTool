@@ -1,0 +1,123 @@
+{
+  "id": "20250604_141409",
+  "nom": "Enchere Ilian",
+  "date": "2025-06-04",
+  "lieu": "Cergy",
+  "description": "OUIOUIIIIIIIIIIIIIII",
+  "date_creation": "2025-06-04T14:14:09.727522",
+  "parametres": {
+    "tarif_horaire": 0.0,
+    "commission_vente": 14.0,
+    "marge_securite": 200.0,
+    "mode_sombre": false
+  },
+  "vehicules_reperage": [
+    {
+      "lot": "1",
+      "marque": "Opel",
+      "modele": "Corsa",
+      "annee": "2010",
+      "kilometrage": "34,000km",
+      "chose_a_faire": "test",
+      "cout_reparations": "300",
+      "temps_reparations": "1",
+      "prix_revente": "6000",
+      "prix_max_achat": "4660€",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": ""
+    },
+    {
+      "lot": "2",
+      "marque": "Peugeot",
+      "modele": "406",
+      "annee": "2000",
+      "kilometrage": "343,000km",
+      "chose_a_faire": "",
+      "cout_reparations": "100",
+      "temps_reparations": "2",
+      "prix_revente": "3000",
+      "prix_max_achat": "2280€",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": ""
+    }
+  ],
+  "vehicules_achetes": [
+    {
+      "lot": "24",
+      "marque": "Opel",
+      "modele": "Corsa",
+      "annee": "2005",
+      "kilometrage": "330",
+      "chose_a_faire": "revision complete",
+      "cout_reparations": "1500",
+      "temps_reparations": "10",
+      "prix_revente": "",
+      "prix_max_achat": "9936€",
+      "prix_achat": "10000€",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
+    },
+    {
+      "lot": "1",
+      "marque": "1",
+      "modele": "1",
+      "annee": "2006",
+      "kilometrage": "330,000km",
+      "chose_a_faire": "",
+      "cout_reparations": "1600",
+      "temps_reparations": "10",
+      "prix_revente": "2000",
+      "prix_max_achat": "8511€",
+      "prix_achat": "9999€",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
+    },
+    {
+      "lot": "20",
+      "marque": "Mercedes",
+      "modele": "Classe E",
+      "annee": "2005",
+      "kilometrage": "347,000km",
+      "chose_a_faire": "tout frr",
+      "cout_reparations": "4000",
+      "temps_reparations": "50",
+      "prix_revente": "3000€",
+      "prix_max_achat": "100€",
+      "prix_achat": "700€",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
+    },
+    {
+      "lot": "a",
+      "marque": "a",
+      "modele": "a",
+      "annee": "a",
+      "kilometrage": "a",
+      "chose_a_faire": "",
+      "cout_reparations": "a",
+      "temps_reparations": "a",
+      "prix_revente": "a",
+      "prix_max_achat": "",
+      "prix_achat": "50000",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
+    },
+    {
+      "lot": "b",
+      "marque": "b",
+      "modele": "b",
+      "annee": "b",
+      "kilometrage": "b",
+      "chose_a_faire": "",
+      "cout_reparations": "b",
+      "temps_reparations": "b",
+      "prix_revente": "70000€",
+      "prix_max_achat": "",
+      "prix_achat": "50000€",
+      "statut": "Acheté",
+      "date_achat": "04/06/2025"
+    }
+  ]
+}
