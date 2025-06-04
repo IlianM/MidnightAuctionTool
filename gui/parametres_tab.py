@@ -1,51 +1,61 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Onglet paramètres - CustomTkinter
+Onglet paramètres - CustomTkinter - Version par journée
 """
 
 import customtkinter as ctk
 from tkinter import messagebox
 
 from config.settings import AppSettings
-from services.data_manager import DataManager
-from utils.styles import StyleManager
+from utils.tooltips import ajouter_tooltip, TOOLTIPS
 
 class ParametresTab:
-    """Onglet paramètres avec CustomTkinter"""
+    """Onglet paramètres avec CustomTkinter - Version par journée d'enchère"""
     
-    def __init__(self, parent, settings: AppSettings, data_manager: DataManager,
-                 style_manager: StyleManager, on_data_changed=None):
+    def __init__(self, parent, settings: AppSettings, data_adapter,
+                 style_manager, journee, on_parametres_changed=None):
         self.parent = parent
         self.settings = settings
-        self.data_manager = data_manager
+        self.data_adapter = data_adapter
         self.style_manager = style_manager
-        self.on_data_changed = on_data_changed
+        self.journee = journee  # Journée d'enchère spécifique
+        self.on_parametres_changed = on_parametres_changed
         
         # Variables d'interface
         self.vars_parametres = {}
         
-        # Créer le frame principal
-        self.frame = ctk.CTkFrame(parent)
-        
+        # Créer l'interface directement dans le parent (qui est un onglet du TabView)
         self.creer_interface()
     
     def creer_interface(self):
         """Crée l'interface de l'onglet paramètres avec CustomTkinter"""
-        main_frame = ctk.CTkFrame(self.frame)
+        main_frame = ctk.CTkScrollableFrame(self.parent)
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Titre
+        # Titre avec nom de la journée
         titre = ctk.CTkLabel(
             main_frame,
-            text="⚙️ PARAMÈTRES DE L'APPLICATION",
+            text=f"⚙️ PARAMÈTRES DE L'ENCHÈRE\n{self.journee.nom}",
             font=ctk.CTkFont(size=20, weight="bold")
         )
         titre.pack(pady=(0, 30))
         
+        # Information importante
+        info_frame = ctk.CTkFrame(main_frame)
+        info_frame.pack(fill="x", pady=(0, 20))
+        
+        info_label = ctk.CTkLabel(
+            info_frame,
+            text="💡 Ces paramètres sont spécifiques à cette journée d'enchère\net n'affectent que les véhicules de cette journée.",
+            font=ctk.CTkFont(size=12),
+            text_color="#2E86AB"
+        )
+        info_label.pack(pady=15)
+        
         # Frame pour les paramètres
         params_frame = ctk.CTkFrame(main_frame)
-        params_frame.pack(fill="both", expand=True)
+        params_frame.pack(fill="x", pady=(0, 20))
         
         # Initialiser les variables
         self.initialiser_variables()
@@ -56,7 +66,7 @@ class ParametresTab:
         # Section marges
         self.creer_section_marges(params_frame)
         
-        # Section apparence
+        # Section apparence (mode sombre)
         self.creer_section_apparence(params_frame)
         
         # Boutons
@@ -70,7 +80,6 @@ class ParametresTab:
         self.vars_parametres = {
             'tarif_horaire': ctk.StringVar(),
             'commission_vente': ctk.StringVar(),
-            'commission_achat': ctk.StringVar(),
             'marge_securite': ctk.StringVar(),
             'mode_sombre': ctk.BooleanVar()
         }
@@ -96,55 +105,49 @@ class ParametresTab:
         tarif_frame = ctk.CTkFrame(grid_frame)
         tarif_frame.pack(fill="x", pady=5)
         
-        ctk.CTkLabel(
+        tarif_label = ctk.CTkLabel(
             tarif_frame,
             text="Tarif horaire (€/h):",
             font=ctk.CTkFont(size=12, weight="bold"),
             width=200
-        ).pack(side="left", padx=10)
+        )
+        tarif_label.pack(side="left", padx=10)
         
-        ctk.CTkEntry(
+        tarif_entry = ctk.CTkEntry(
             tarif_frame,
             textvariable=self.vars_parametres['tarif_horaire'],
             width=100,
-            placeholder_text="25"
-        ).pack(side="right", padx=10)
+            placeholder_text="45"
+        )
+        tarif_entry.pack(side="right", padx=10)
+        
+        # Ajouter tooltip
+        ajouter_tooltip(tarif_label, TOOLTIPS['param_tarif_horaire'])
+        ajouter_tooltip(tarif_entry, TOOLTIPS['param_tarif_horaire'])
         
         # Commission vente
         comm_vente_frame = ctk.CTkFrame(grid_frame)
         comm_vente_frame.pack(fill="x", pady=5)
         
-        ctk.CTkLabel(
+        comm_vente_label = ctk.CTkLabel(
             comm_vente_frame,
             text="Commission vente (%):",
             font=ctk.CTkFont(size=12, weight="bold"),
             width=200
-        ).pack(side="left", padx=10)
+        )
+        comm_vente_label.pack(side="left", padx=10)
         
-        ctk.CTkEntry(
+        comm_vente_entry = ctk.CTkEntry(
             comm_vente_frame,
             textvariable=self.vars_parametres['commission_vente'],
             width=100,
             placeholder_text="8.5"
-        ).pack(side="right", padx=10)
+        )
+        comm_vente_entry.pack(side="right", padx=10)
         
-        # Commission achat
-        comm_achat_frame = ctk.CTkFrame(grid_frame)
-        comm_achat_frame.pack(fill="x", pady=5)
-        
-        ctk.CTkLabel(
-            comm_achat_frame,
-            text="Commission achat (%):",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            width=200
-        ).pack(side="left", padx=10)
-        
-        ctk.CTkEntry(
-            comm_achat_frame,
-            textvariable=self.vars_parametres['commission_achat'],
-            width=100,
-            placeholder_text="1.2"
-        ).pack(side="right", padx=10)
+        # Ajouter tooltip
+        ajouter_tooltip(comm_vente_label, TOOLTIPS['param_commission_vente'])
+        ajouter_tooltip(comm_vente_entry, TOOLTIPS['param_commission_vente'])
     
     def creer_section_marges(self, parent):
         """Crée la section des marges"""
@@ -167,19 +170,43 @@ class ParametresTab:
         marge_frame = ctk.CTkFrame(grid_frame)
         marge_frame.pack(fill="x", pady=5)
         
-        ctk.CTkLabel(
+        marge_label = ctk.CTkLabel(
             marge_frame,
             text="Marge de sécurité (€):",
             font=ctk.CTkFont(size=12, weight="bold"),
             width=200
-        ).pack(side="left", padx=10)
+        )
+        marge_label.pack(side="left", padx=10)
         
-        ctk.CTkEntry(
+        marge_entry = ctk.CTkEntry(
             marge_frame,
             textvariable=self.vars_parametres['marge_securite'],
             width=100,
             placeholder_text="200"
-        ).pack(side="right", padx=10)
+        )
+        marge_entry.pack(side="right", padx=10)
+        
+        # Ajouter tooltip
+        ajouter_tooltip(marge_label, TOOLTIPS['param_marge_securite'])
+        ajouter_tooltip(marge_entry, TOOLTIPS['param_marge_securite'])
+        
+        # Explication du calcul
+        explication_frame = ctk.CTkFrame(grid_frame)
+        explication_frame.pack(fill="x", pady=(10, 0))
+        
+        explication_text = """💡 FORMULE DU PRIX MAXIMUM :
+Prix Max = Prix Revente - (Coût Réparations + Main d'Œuvre) - Commission Vente - Marge Sécurité
+
+Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
+        
+        explication_label = ctk.CTkLabel(
+            explication_frame,
+            text=explication_text,
+            font=ctk.CTkFont(size=11),
+            text_color="#666666",
+            justify="left"
+        )
+        explication_label.pack(padx=20, pady=15)
     
     def creer_section_apparence(self, parent):
         """Crée la section apparence"""
@@ -198,139 +225,165 @@ class ParametresTab:
         mode_frame = ctk.CTkFrame(section_frame)
         mode_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        ctk.CTkLabel(
+        mode_sombre_label = ctk.CTkLabel(
             mode_frame,
             text="Mode sombre:",
-            font=ctk.CTkFont(size=12, weight="bold")
-        ).pack(side="left", padx=10)
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=200
+        )
+        mode_sombre_label.pack(side="left", padx=10, pady=10)
         
-        ctk.CTkCheckBox(
+        mode_sombre_switch = ctk.CTkSwitch(
             mode_frame,
-            text="Activer le mode sombre",
+            text="",
             variable=self.vars_parametres['mode_sombre'],
             command=self.toggle_mode_sombre
-        ).pack(side="right", padx=10)
+        )
+        mode_sombre_switch.pack(side="right", padx=10, pady=10)
+        
+        # Ajouter tooltip
+        ajouter_tooltip(mode_sombre_label, TOOLTIPS['param_mode_sombre'])
+        ajouter_tooltip(mode_sombre_switch, TOOLTIPS['param_mode_sombre'])
     
     def creer_boutons(self, parent):
         """Crée les boutons d'action"""
         buttons_frame = ctk.CTkFrame(parent)
-        buttons_frame.pack(fill="x", pady=(20, 0))
+        buttons_frame.pack(fill="x", pady=20)
         
-        # Bouton Sauvegarder
-        sauvegarder_btn = ctk.CTkButton(
+        # Bouton sauvegarder
+        save_button = ctk.CTkButton(
             buttons_frame,
-            text="💾 Sauvegarder",
+            text="💾 Sauvegarder les paramètres",
             command=self.sauvegarder_parametres,
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=200,
             height=40
         )
-        sauvegarder_btn.pack(side="left", padx=20, pady=15)
+        save_button.pack(side="left", padx=20, pady=15)
         
-        # Bouton Réinitialiser
-        reset_btn = ctk.CTkButton(
+        # Bouton réinitialiser
+        reset_button = ctk.CTkButton(
             buttons_frame,
             text="🔄 Réinitialiser",
             command=self.reinitialiser_parametres,
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=150,
             height=40
         )
-        reset_btn.pack(side="left", padx=10, pady=15)
+        reset_button.pack(side="left", padx=10, pady=15)
         
-        # Bouton Aide
-        aide_btn = ctk.CTkButton(
+        # Bouton aide
+        help_button = ctk.CTkButton(
             buttons_frame,
             text="❓ Aide",
             command=self.afficher_aide,
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=100,
             height=40
         )
-        aide_btn.pack(side="right", padx=20, pady=15)
+        help_button.pack(side="right", padx=20, pady=15)
+        
+        # Ajouter tooltips
+        ajouter_tooltip(save_button, TOOLTIPS['btn_sauvegarder_param'])
+        ajouter_tooltip(reset_button, TOOLTIPS['btn_reinitialiser_param'])
+        ajouter_tooltip(help_button, TOOLTIPS['btn_aide_param'])
     
     def charger_valeurs(self):
-        """Charge les valeurs actuelles des paramètres"""
-        # Valeurs par défaut ou depuis les settings
-        self.vars_parametres['tarif_horaire'].set(str(getattr(self.settings, 'tarif_horaire', 25)))
-        self.vars_parametres['commission_vente'].set(str(getattr(self.settings, 'commission_vente', 8.5)))
-        self.vars_parametres['commission_achat'].set(str(getattr(self.settings, 'commission_achat', 1.2)))
-        self.vars_parametres['marge_securite'].set(str(getattr(self.settings, 'marge_securite', 200)))
+        """Charge les valeurs des paramètres de la journée"""
+        parametres = self.journee.parametres
         
-        # Mode sombre
-        current_mode = ctk.get_appearance_mode()
-        self.vars_parametres['mode_sombre'].set(current_mode == "Dark")
+        self.vars_parametres['tarif_horaire'].set(str(parametres.get('tarif_horaire', 45.0)))
+        self.vars_parametres['commission_vente'].set(str(parametres.get('commission_vente', 8.5)))
+        self.vars_parametres['marge_securite'].set(str(parametres.get('marge_securite', 200.0)))
+        self.vars_parametres['mode_sombre'].set(parametres.get('mode_sombre', False))
     
     def toggle_mode_sombre(self):
         """Bascule le mode sombre"""
-        if self.vars_parametres['mode_sombre'].get():
-            ctk.set_appearance_mode("dark")
-        else:
-            ctk.set_appearance_mode("light")
+        mode_sombre = self.vars_parametres['mode_sombre'].get()
+        mode = "dark" if mode_sombre else "light"
+        ctk.set_appearance_mode(mode)
     
     def sauvegarder_parametres(self):
-        """Sauvegarde les paramètres"""
+        """Sauvegarde les paramètres de la journée"""
         try:
-            # Validation des valeurs
-            tarif = float(self.vars_parametres['tarif_horaire'].get() or 25)
-            comm_vente = float(self.vars_parametres['commission_vente'].get() or 8.5)
-            comm_achat = float(self.vars_parametres['commission_achat'].get() or 1.2)
-            marge_sec = float(self.vars_parametres['marge_securite'].get() or 200)
+            # Récupérer et valider les valeurs
+            tarif_horaire = float(self.vars_parametres['tarif_horaire'].get().replace(',', '.'))
+            commission_vente = float(self.vars_parametres['commission_vente'].get().replace(',', '.'))
+            marge_securite = float(self.vars_parametres['marge_securite'].get().replace(',', '.'))
+            mode_sombre = self.vars_parametres['mode_sombre'].get()
             
-            if tarif <= 0 or comm_vente < 0 or comm_achat < 0 or marge_sec < 0:
-                raise ValueError("Les valeurs doivent être positives")
+            # Validation
+            if tarif_horaire < 0 or commission_vente < 0 or marge_securite < 0:
+                messagebox.showerror("❌ Erreur", "Les valeurs ne peuvent pas être négatives")
+                return
             
-            # Sauvegarder (si les attributs existent dans settings)
-            if hasattr(self.settings, 'tarif_horaire'):
-                self.settings.tarif_horaire = tarif
-            if hasattr(self.settings, 'commission_vente'):
-                self.settings.commission_vente = comm_vente
-            if hasattr(self.settings, 'commission_achat'):
-                self.settings.commission_achat = comm_achat
-            if hasattr(self.settings, 'marge_securite'):
-                self.settings.marge_securite = marge_sec
+            if commission_vente > 100:
+                messagebox.showerror("❌ Erreur", "La commission ne peut pas dépasser 100%")
+                return
             
-            # Sauvegarder le fichier de configuration
-            self.settings.sauvegarder()
+            # Mettre à jour les paramètres de la journée
+            self.journee.parametres['tarif_horaire'] = tarif_horaire
+            self.journee.parametres['commission_vente'] = commission_vente
+            self.journee.parametres['marge_securite'] = marge_securite
+            self.journee.parametres['mode_sombre'] = mode_sombre
             
-            messagebox.showinfo("✅ Succès", "Paramètres sauvegardés avec succès !")
+            # Notifier le changement pour recalculer les prix max
+            if self.on_parametres_changed:
+                self.on_parametres_changed()
             
-            # Notifier les changements
-            if self.on_data_changed:
-                self.on_data_changed()
-                
-        except ValueError as e:
-            messagebox.showerror("❌ Erreur", f"Valeurs invalides: {e}")
+            messagebox.showinfo("✅ Succès", "Paramètres sauvegardés et prix maximums recalculés !")
+            
+        except ValueError:
+            messagebox.showerror("❌ Erreur", "Veuillez entrer des valeurs numériques valides")
         except Exception as e:
             messagebox.showerror("❌ Erreur", f"Erreur lors de la sauvegarde: {e}")
     
     def reinitialiser_parametres(self):
-        """Réinitialise les paramètres aux valeurs par défaut"""
-        if messagebox.askyesno("Confirmation", "Réinitialiser tous les paramètres ?"):
-            self.vars_parametres['tarif_horaire'].set("25")
-            self.vars_parametres['commission_vente'].set("8.5")
-            self.vars_parametres['commission_achat'].set("1.2")
-            self.vars_parametres['marge_securite'].set("200")
-            self.vars_parametres['mode_sombre'].set(False)
-            ctk.set_appearance_mode("light")
+        """Remet les paramètres aux valeurs par défaut"""
+        if messagebox.askyesno("Confirmation", "Remettre tous les paramètres aux valeurs par défaut ?"):
+            # Valeurs par défaut
+            self.journee.parametres = {
+                'tarif_horaire': 45.0,
+                'commission_vente': 8.5,
+                'marge_securite': 200.0,
+                'mode_sombre': False
+            }
+            
+            # Recharger l'affichage
+            self.charger_valeurs()
+            
+            # Notifier le changement
+            if self.on_parametres_changed:
+                self.on_parametres_changed()
+            
+            messagebox.showinfo("✅ Succès", "Paramètres réinitialisés !")
     
     def afficher_aide(self):
-        """Affiche l'aide des paramètres"""
-        aide_text = """
-🔧 AIDE PARAMÈTRES
+        """Affiche l'aide détaillée"""
+        aide_text = """🔧 AIDE - PARAMÈTRES DE L'ENCHÈRE
 
-💰 TARIFS:
-• Tarif horaire: Coût de votre temps de travail
-• Commission vente: Frais de vente (ex: 8.5%)
-• Commission achat: Frais d'achat (ex: 1.2%)
+💰 TARIF HORAIRE
+Votre tarif horaire pour calculer le coût de la main d'œuvre.
+Utilisé dans le calcul : Main d'Œuvre = Temps × Tarif Horaire
 
-📊 MARGES:
-• Marge de sécurité: Montant à déduire pour les imprévus
+💸 COMMISSION VENTE
+Pourcentage prélevé lors de la vente du véhicule réparé.
+Utilisé dans le calcul : Commission = Prix Revente × (% / 100)
 
-🎨 APPARENCE:
-• Mode sombre: Interface sombre pour réduire la fatigue oculaire
+🛡️ MARGE DE SÉCURITÉ  
+Marge fixe déduite pour couvrir les imprévus et garantir la rentabilité.
+Montant fixe en euros décompté du prix maximum.
 
-💡 Les paramètres sont automatiquement utilisés pour calculer le prix maximum d'achat.
-        """
+🎨 MODE SOMBRE
+Active/désactive le thème sombre de l'interface.
+
+📊 CALCUL DU PRIX MAXIMUM
+Prix Max = Prix Revente - (Coût Réparations + Main d'Œuvre) - Commission Vente - Marge Sécurité
+
+⚠️ CES PARAMÈTRES SONT SPÉCIFIQUES À CETTE JOURNÉE D'ENCHÈRE
+Chaque journée a ses propres paramètres et ne sont pas partagés."""
         
-        messagebox.showinfo("❓ Aide", aide_text)
+        messagebox.showinfo("🔧 Aide - Paramètres", aide_text)
     
     def actualiser(self):
         """Met à jour l'affichage (si nécessaire)"""

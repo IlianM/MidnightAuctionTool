@@ -76,6 +76,67 @@ class Vehicule:
         except (ValueError, AttributeError):
             return 0.0
     
+    def calculer_prix_max_automatique(self, settings) -> str:
+        """
+        NOUVEAU : Calcule automatiquement le prix maximum conseillé selon les paramètres
+        """
+        try:
+            prix_revente = self.get_prix_numerique('prix_revente')
+            cout_reparations = self.get_prix_numerique('cout_reparations')
+            temps_reparations = self.get_prix_numerique('temps_reparations')
+            
+            if prix_revente <= 0:
+                return ""  # Pas de calcul possible sans prix de revente
+            
+            prix_max = settings.calculer_prix_max(prix_revente, cout_reparations, temps_reparations)
+            return f"{prix_max:.0f}€" if prix_max > 0 else "0€"
+            
+        except Exception as e:
+            print(f"⚠️ Erreur calcul prix max automatique: {e}")
+            return ""
+    
+    def calculer_prix_max_avec_parametres(self, parametres: Dict) -> str:
+        """
+        NOUVEAU : Calcule le prix maximum avec des paramètres spécifiques d'une journée
+        """
+        try:
+            prix_revente = self.get_prix_numerique('prix_revente')
+            cout_reparations = self.get_prix_numerique('cout_reparations')
+            temps_reparations = self.get_prix_numerique('temps_reparations')
+            
+            if prix_revente <= 0:
+                return ""  # Pas de calcul possible sans prix de revente
+            
+            # Récupérer les paramètres de la journée
+            tarif_horaire = parametres.get('tarif_horaire', 45.0)
+            commission_vente = parametres.get('commission_vente', 8.5)
+            marge_securite = parametres.get('marge_securite', 200.0)
+            
+            # Main d'œuvre = Temps × Tarif horaire
+            main_oeuvre = temps_reparations * tarif_horaire
+            
+            # Commission vente = pourcentage du prix de revente
+            commission = prix_revente * (commission_vente / 100)
+            
+            # Calcul final
+            prix_max = prix_revente - (cout_reparations + main_oeuvre) - commission - marge_securite
+            
+            # Ne pas retourner de valeur négative
+            prix_max = max(0, prix_max)
+            return f"{prix_max:.0f}€" if prix_max > 0 else "0€"
+            
+        except Exception as e:
+            print(f"⚠️ Erreur calcul prix max avec paramètres: {e}")
+            return ""
+    
+    def mettre_a_jour_prix_max(self, settings):
+        """Met à jour automatiquement le prix maximum calculé"""
+        self.prix_max_achat = self.calculer_prix_max_automatique(settings)
+    
+    def mettre_a_jour_prix_max_avec_parametres(self, parametres: Dict):
+        """Met à jour le prix max avec des paramètres spécifiques"""
+        self.prix_max_achat = self.calculer_prix_max_avec_parametres(parametres)
+    
     def calculer_marge(self) -> float:
         """Calcule la marge (prix max - prix achat)"""
         prix_max = self.get_prix_numerique('prix_max_achat')
@@ -109,7 +170,7 @@ class Vehicule:
         return True, ""
     
     def to_csv_row(self) -> List[str]:
-        """Convertit le véhicule en ligne CSV pour export"""
+        """Convertit le véhicule en ligne CSV pour export (MODIFIÉE avec prix max)"""
         marge = self.calculer_marge()
         marge_str = f"{marge:.0f}€" if marge != 0 else "N/A"
         
@@ -130,7 +191,7 @@ class Vehicule:
         ]
     
     def to_table_row(self) -> tuple:
-        """Convertit le véhicule en ligne pour affichage tableau"""
+        """Convertit le véhicule en ligne pour affichage tableau (MODIFIÉE avec prix max)"""
         return (
             self.lot, self.marque, self.modele, self.annee, self.kilometrage,
             self.chose_a_faire, self.cout_reparations, self.temps_reparations,

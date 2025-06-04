@@ -5,37 +5,36 @@ Onglet véhicules achetés - CustomTkinter
 """
 
 import customtkinter as ctk
-from tkinter import ttk, messagebox
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
 import csv
 from datetime import datetime
+import os
 
 from config.settings import AppSettings
-from services.data_manager import DataManager
-from utils.styles import StyleManager
+from utils.tooltips import ajouter_tooltip, TOOLTIPS
 
 class AchetesTab:
     """Onglet véhicules achetés avec CustomTkinter"""
     
-    def __init__(self, parent, settings: AppSettings, data_manager: DataManager, 
-                 style_manager: StyleManager, on_data_changed=None):
+    def __init__(self, parent, settings: AppSettings, data_adapter, 
+                 style_manager, on_data_changed=None):
         self.parent = parent
         self.settings = settings
-        self.data_manager = data_manager
+        self.data_adapter = data_adapter  # Nouveau nom pour le gestionnaire de données
         self.style_manager = style_manager
         self.on_data_changed = on_data_changed
         
         # Variables d'interface
         self.tree_achetes = None
         
-        # Créer le frame principal
-        self.frame = ctk.CTkFrame(parent)
-        
+        # Créer l'interface directement dans le parent (onglet du TabView)
         self.creer_interface()
     
     def creer_interface(self):
         """Crée l'interface de l'onglet achetés avec CustomTkinter"""
-        # Créer un scrollable frame
-        self.scrollable_frame = ctk.CTkScrollableFrame(self.frame)
+        # Créer un scrollable frame directement dans le parent
+        self.scrollable_frame = ctk.CTkScrollableFrame(self.parent)
         self.scrollable_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Titre
@@ -58,6 +57,9 @@ class AchetesTab:
         )
         self.label_stats.pack(pady=15)
         
+        # Ajouter tooltip aux statistiques
+        ajouter_tooltip(self.label_stats, "Statistiques automatiques calculées à partir des véhicules achetés : nombre total, marge totale, marge moyenne et investissement total.")
+        
         # Frame pour les boutons
         buttons_frame = ctk.CTkFrame(self.scrollable_frame)
         buttons_frame.pack(fill="x", pady=(0, 15))
@@ -70,6 +72,7 @@ class AchetesTab:
             font=ctk.CTkFont(size=12, weight="bold")
         )
         export_button.pack(side="left", padx=10, pady=10)
+        ajouter_tooltip(export_button, TOOLTIPS['btn_export_csv'])
         
         refresh_button = ctk.CTkButton(
             buttons_frame,
@@ -78,6 +81,7 @@ class AchetesTab:
             font=ctk.CTkFont(size=12, weight="bold")
         )
         refresh_button.pack(side="left", padx=10, pady=10)
+        ajouter_tooltip(refresh_button, "Met à jour l'affichage des véhicules achetés et recalcule les statistiques.")
         
         # Barre de recherche (juste au-dessus du tableau)
         self.creer_barre_recherche(self.scrollable_frame)
@@ -88,6 +92,9 @@ class AchetesTab:
         
         # Tableau des véhicules achetés
         self.creer_tableau(tableau_frame)
+        
+        # Charger les données initiales
+        self.actualiser()
     
     def creer_barre_recherche(self, parent):
         """Crée la barre de recherche"""
@@ -138,6 +145,10 @@ class AchetesTab:
             width=100
         )
         clear_button.pack(side="right", padx=10, pady=10)
+        
+        # Ajouter tooltips
+        ajouter_tooltip(self.entry_recherche, "Recherche instantanée parmi les véhicules achetés par numéro de lot, marque ou modèle.")
+        ajouter_tooltip(clear_button, "Efface le texte de recherche et affiche tous les véhicules achetés.")
     
     def creer_tableau(self, parent):
         """Crée le tableau des véhicules achetés"""
@@ -190,6 +201,12 @@ class AchetesTab:
         # Configuration du grid
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+        
+        # Ajouter tooltip au tableau
+        ajouter_tooltip(self.tree_achetes, """Tableau des véhicules achetés avec indication de rentabilité :
+• Fond VERT = achat rentable (marge positive)
+• Fond ROUGE = achat à perte (marge négative)
+• Marge = Différence entre prix max calculé et prix d'achat réel""")
     
     def actualiser(self):
         """Met à jour l'affichage des véhicules achetés"""
@@ -198,7 +215,7 @@ class AchetesTab:
             self.tree_achetes.delete(item)
         
         # Remplir avec les véhicules achetés
-        vehicules_achetes = self.filtrer_vehicules(self.data_manager.vehicules_achetes)
+        vehicules_achetes = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
         total_marge = 0
         total_investissement = 0
         
@@ -245,8 +262,6 @@ class AchetesTab:
     def exporter_csv(self):
         """Exporte les données vers un fichier CSV"""
         try:
-            from tkinter import filedialog
-            
             filename = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("Fichiers CSV", "*.csv")],
@@ -264,7 +279,7 @@ class AchetesTab:
                     ])
                     
                     # Données
-                    for vehicule in self.data_manager.vehicules_achetes:
+                    for vehicule in self.data_adapter.vehicules_achetes:
                         writer.writerow([
                             vehicule.lot,
                             vehicule.marque,

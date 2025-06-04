@@ -1,4 +1,20 @@
 {
+  "id": "20250604_103439",
+  "nom": "Migration - Données existantes",
+  "date": "2025-06-04",
+  "lieu": "",
+  "description": "Journée créée automatiquement lors de la migration",
+  "date_creation": "2025-06-04T10:34:39.397658",
+  "parametres": {
+    "tarif_horaire": 25.0,
+    "commission_vente": 8.5,
+    "marge_securite": 200.0,
+    "type_marge": "pourcentage",
+    "marge_minimum": 15.0,
+    "commission_encheres": 8.0,
+    "frais_fixes": 200.0,
+    "mode_edition": "double_clic"
+  },
   "vehicules_reperage": [
     {
       "lot": "LOT103",

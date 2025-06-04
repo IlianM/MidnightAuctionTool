@@ -1,0 +1,15 @@
+{
+  "id": "20250604_103543",
+  "nom": "Enchere VAG Paris",
+  "date": "2025-06-04",
+  "lieu": "Paris 9",
+  "description": "",
+  "date_creation": "2025-06-04T10:35:43.226167",
+  "parametres": {
+    "tarif_horaire": 45.0,
+    "commission_vente": 8.5,
+    "marge_securite": 200.0
+  },
+  "vehicules_reperage": [],
+  "vehicules_achetes": []
+}

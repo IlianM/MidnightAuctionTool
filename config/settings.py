@@ -15,13 +15,11 @@ class AppSettings:
         self.fichier_donnees = "donnees_encheres.json"
         self.fichier_parametres = "parametres_encheres.json"
         
-        # Paramètres par défaut
+        # Paramètres par défaut (MODIFIÉS : suppression commission_achat, ajout nouveaux paramètres)
         self.parametres_defaut = {
             'tarif_horaire': 45.0,
-            'marge_type': 'pourcentage',
-            'marge_valeur': 20.0,
-            'commission_enchere': 12.0,
-            'frais_fixes': 150.0,
+            'commission_vente': 8.5,  # Commission lors de la vente (%)
+            'marge_securite': 200.0,  # Marge de sécurité en euros
             'mode_edition': 'double_clic'
         }
         
@@ -47,13 +45,13 @@ class AppSettings:
             'state': 'zoomed'
         }
         
-        # Configuration colonnes tableau
+        # Configuration colonnes tableau (MODIFIÉE : ajout colonne Prix Max)
         self.colonnes_reperage = [
             "Lot", "Marque", "Modèle", "Année", "Km", "À Faire", 
             "Coût R.", "Temps R.", "Prix Rev.", "Prix Max", "Prix Achat", "Statut"
         ]
         
-        self.largeurs_colonnes = [60, 100, 120, 60, 80, 180, 70, 65, 85, 85, 85, 80]
+        self.largeurs_colonnes = [60, 100, 120, 60, 80, 180, 70, 65, 85, 90, 85, 80]
         
         self.colonnes_achetes = [
             "Lot", "Marque", "Modèle", "Année", 
@@ -87,4 +85,29 @@ class AppSettings:
     def reinitialiser_parametres(self):
         """Remet les paramètres aux valeurs par défaut"""
         self.parametres = self.parametres_defaut.copy()
-        return self.sauvegarder_parametres() 
+        return self.sauvegarder_parametres()
+    
+    def calculer_prix_max(self, prix_revente: float, cout_reparations: float, temps_reparations: float) -> float:
+        """
+        Calcule le prix maximum d'achat selon la formule :
+        Prix Max = Prix Revente - (Coût Réparations + Main d'Œuvre) - Commission Vente - Marge Sécurité
+        """
+        try:
+            # Main d'œuvre = Temps × Tarif horaire
+            main_oeuvre = temps_reparations * self.parametres.get('tarif_horaire', 45.0)
+            
+            # Commission vente = pourcentage du prix de revente
+            commission_vente = prix_revente * (self.parametres.get('commission_vente', 8.5) / 100)
+            
+            # Marge de sécurité
+            marge_securite = self.parametres.get('marge_securite', 200.0)
+            
+            # Calcul final
+            prix_max = prix_revente - (cout_reparations + main_oeuvre) - commission_vente - marge_securite
+            
+            # Ne pas retourner de valeur négative
+            return max(0, prix_max)
+            
+        except Exception as e:
+            print(f"⚠️ Erreur calcul prix max: {e}")
+            return 0.0 
