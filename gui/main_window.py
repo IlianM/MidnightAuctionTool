@@ -187,20 +187,35 @@ class MainWindow:
         # Mettre à jour la barre de navigation
         self.actualiser_barre_navigation()
     
-    def on_parametres_changed(self):
+    def on_parametres_changed(self, parametres_temp=None):
         """Callback appelé quand les paramètres changent"""
         # Recalculer tous les prix max des véhicules avec les nouveaux paramètres
-        for vehicule in self.journee.vehicules_reperage:
-            vehicule.mettre_a_jour_prix_max_avec_parametres(self.journee.parametres)
+        parametres_actuels = parametres_temp if parametres_temp else self.journee.parametres
         
-        # Sauvegarder
-        self.journees_manager.sauvegarder_journee_active()
+        for vehicule in self.journee.vehicules_reperage:
+            vehicule.mettre_a_jour_prix_max_avec_parametres(parametres_actuels)
+        
+        # Appliquer les changements d'interface aux onglets
+        if hasattr(self, 'reperage_tab') and hasattr(self.reperage_tab, 'appliquer_parametres_interface'):
+            self.reperage_tab.appliquer_parametres_interface(parametres_temp)
+        
+        if hasattr(self, 'achetes_tab') and hasattr(self.achetes_tab, 'appliquer_parametres_interface'):
+            self.achetes_tab.appliquer_parametres_interface(parametres_temp)
+        
+        # Sauvegarder seulement si ce ne sont pas des paramètres temporaires
+        if not parametres_temp:
+            self.journees_manager.sauvegarder_journee_active()
         
         # Actualiser les onglets
         if hasattr(self, 'reperage_tab'):
             self.reperage_tab.actualiser()
+        
         if hasattr(self, 'achetes_tab'):
             self.achetes_tab.actualiser()
+        
+        # Mettre à jour la barre de navigation
+        if not parametres_temp:  # Seulement pour les changements définitifs
+            self.actualiser_barre_navigation()
     
     def actualiser_barre_navigation(self):
         """Met à jour les statistiques de la barre de navigation"""

@@ -23,11 +23,18 @@ class Vehicule:
         self.chose_a_faire = data.get('chose_a_faire', '')
         self.cout_reparations = data.get('cout_reparations', '')
         self.temps_reparations = data.get('temps_reparations', '')
-        self.prix_revente = data.get('prix_revente', '')
+        self.prix_revente = data.get('prix_revente', '')  # Prix de revente ESTIMÉ
+        self.prix_vente_final = data.get('prix_vente_final', '')  # Prix de vente RÉEL
         self.prix_max_achat = data.get('prix_max_achat', '')
         self.prix_achat = data.get('prix_achat', '')
         self.statut = data.get('statut', 'Repérage')
         self.date_achat = data.get('date_achat', '')
+        
+        # NOUVEAUX CHAMPS
+        self.motorisation = data.get('motorisation', '')
+        self.champ_libre = data.get('champ_libre', '')
+        self.reserve_professionnels = data.get('reserve_professionnels', False)
+        self.couleur = data.get('couleur', 'turquoise')  # Par défaut turquoise
     
     def to_dict(self) -> Dict:
         """Convertit le véhicule en dictionnaire"""
@@ -41,10 +48,16 @@ class Vehicule:
             'cout_reparations': self.cout_reparations,
             'temps_reparations': self.temps_reparations,
             'prix_revente': self.prix_revente,
+            'prix_vente_final': self.prix_vente_final,
             'prix_max_achat': self.prix_max_achat,
             'prix_achat': self.prix_achat,
             'statut': self.statut,
-            'date_achat': self.date_achat
+            'date_achat': self.date_achat,
+            # NOUVEAUX CHAMPS
+            'motorisation': self.motorisation,
+            'champ_libre': self.champ_libre,
+            'reserve_professionnels': self.reserve_professionnels,
+            'couleur': self.couleur
         }
     
     def est_achete(self) -> bool:
@@ -138,10 +151,87 @@ class Vehicule:
         self.prix_max_achat = self.calculer_prix_max_avec_parametres(parametres)
     
     def calculer_marge(self) -> float:
-        """Calcule la marge (prix max - prix achat)"""
+        """Calcule la marge RÉELLE (prix vente final - prix achat - coûts réparations)"""
+        if not self.a_prix_achat():
+            return 0.0
+        
+        prix_vente_final = self.get_prix_numerique('prix_vente_final')
+        prix_achat = self.get_prix_numerique('prix_achat')
+        cout_reparations = self.get_prix_numerique('cout_reparations')
+        
+        if prix_vente_final <= 0:
+            return 0.0  # Pas encore vendu
+        
+        return prix_vente_final - prix_achat - cout_reparations
+    
+    def calculer_ecart_budget(self) -> float:
+        """Calcule l'écart par rapport au budget (prix max - prix achat)"""
+        if not self.a_prix_achat():
+            return 0.0
+        
         prix_max = self.get_prix_numerique('prix_max_achat')
         prix_achat = self.get_prix_numerique('prix_achat')
-        return prix_max - prix_achat if prix_achat > 0 else 0.0
+        return prix_max - prix_achat
+    
+    def calculer_marge_pourcentage(self) -> float:
+        """Calcule la marge RÉELLE en pourcentage ((prix_vente_final - prix_achat - coûts) / prix_achat * 100)"""
+        prix_achat = self.get_prix_numerique('prix_achat')
+        if prix_achat <= 0:
+            return 0.0
+        
+        marge_euros = self.calculer_marge()
+        if marge_euros == 0.0:  # Pas encore vendu
+            return 0.0
+        
+        return (marge_euros / prix_achat) * 100
+    
+    def calculer_ecart_budget_pourcentage(self) -> float:
+        """Calcule l'écart budget en pourcentage ((prix_max - prix_achat) / prix_achat * 100)"""
+        prix_achat = self.get_prix_numerique('prix_achat')
+        if prix_achat <= 0:
+            return 0.0
+        
+        ecart_euros = self.calculer_ecart_budget()
+        return (ecart_euros / prix_achat) * 100
+    
+    def get_marge_str(self) -> str:
+        """Retourne la marge formatée selon le contexte (écart budget en repérage, marge réelle si vendu)"""
+        if not self.a_prix_achat():
+            return "N/A"
+        
+        # Si vendu (prix vente final renseigné)
+        prix_vente_final = self.get_prix_numerique('prix_vente_final')
+        if prix_vente_final > 0:
+            # Afficher la marge réelle
+            marge_euros = self.calculer_marge()
+            marge_pourcentage = self.calculer_marge_pourcentage()
+            
+            signe_euros = "+" if marge_euros >= 0 else ""
+            signe_pourcent = "+" if marge_pourcentage >= 0 else ""
+            
+            return f"{signe_euros}{marge_euros:.0f}€ ({signe_pourcent}{marge_pourcentage:.1f}%)"
+        else:
+            # Afficher l'écart budget (véhicule acheté mais pas encore vendu)
+            ecart_euros = self.calculer_ecart_budget()
+            ecart_pourcentage = self.calculer_ecart_budget_pourcentage()
+            
+            signe_euros = "+" if ecart_euros >= 0 else ""
+            signe_pourcent = "+" if ecart_pourcentage >= 0 else ""
+            
+            return f"Budget: {signe_euros}{ecart_euros:.0f}€ ({signe_pourcent}{ecart_pourcentage:.1f}%)"
+    
+    def get_ecart_budget_str(self) -> str:
+        """Retourne l'écart budget formaté pour l'onglet repérage"""
+        if not self.a_prix_achat():
+            return "N/A"
+        
+        ecart_euros = self.calculer_ecart_budget()
+        ecart_pourcentage = self.calculer_ecart_budget_pourcentage()
+        
+        signe_euros = "+" if ecart_euros >= 0 else ""
+        signe_pourcent = "+" if ecart_pourcentage >= 0 else ""
+        
+        return f"{signe_euros}{ecart_euros:.0f}€ ({signe_pourcent}{ecart_pourcentage:.1f}%)"
     
     def est_rentable(self) -> bool:
         """Vérifie si l'achat est rentable (prix achat <= prix max)"""
@@ -152,12 +242,16 @@ class Vehicule:
         prix_achat = self.get_prix_numerique('prix_achat')
         return prix_achat <= prix_max
     
-    def get_tag_couleur(self) -> Optional[str]:
-        """Retourne le tag de couleur pour l'affichage"""
-        if not self.a_prix_achat():
-            return None
-        
-        return 'prix_positif' if self.est_rentable() else 'prix_negatif'
+    def get_tag_couleur(self) -> str:
+        """Retourne le tag de couleur pour l'affichage basé sur la couleur choisie par l'utilisateur"""
+        # Mapper les couleurs vers les tags
+        couleur_to_tag = {
+            'turquoise': 'couleur_turquoise',
+            'vert': 'couleur_vert', 
+            'orange': 'couleur_orange',
+            'rouge': 'couleur_rouge'
+        }
+        return couleur_to_tag.get(self.couleur, 'couleur_turquoise')
     
     def valider(self) -> tuple[bool, str]:
         """Valide les données du véhicule"""
@@ -170,7 +264,7 @@ class Vehicule:
         return True, ""
     
     def to_csv_row(self) -> List[str]:
-        """Convertit le véhicule en ligne CSV pour export (MODIFIÉE avec prix max)"""
+        """Convertit le véhicule en ligne CSV pour export (MODIFIÉE avec nouveaux champs)"""
         marge = self.calculer_marge()
         marge_str = f"{marge:.0f}€" if marge != 0 else "N/A"
         
@@ -180,6 +274,7 @@ class Vehicule:
             self.modele,
             self.annee,
             self.kilometrage,
+            self.motorisation,  # NOUVEAU
             self.chose_a_faire,
             f"{self.cout_reparations}€" if self.cout_reparations else '',
             f"{self.temps_reparations}h" if self.temps_reparations else '',
@@ -187,15 +282,19 @@ class Vehicule:
             self.prix_max_achat,
             f"{self.prix_achat}€" if self.prix_achat else '',
             self.statut,
-            marge_str
+            marge_str,
+            self.champ_libre,  # NOUVEAU
+            "Oui" if self.reserve_professionnels else "Non",  # NOUVEAU
+            self.couleur  # NOUVEAU
         ]
     
     def to_table_row(self) -> tuple:
-        """Convertit le véhicule en ligne pour affichage tableau (MODIFIÉE avec prix max)"""
+        """Convertit le véhicule en ligne pour affichage tableau (MODIFIÉE avec nouveaux champs)"""
         return (
             self.lot, self.marque, self.modele, self.annee, self.kilometrage,
-            self.chose_a_faire, self.cout_reparations, self.temps_reparations,
-            self.prix_revente, self.prix_max_achat, self.prix_achat, self.statut
+            self.motorisation, self.chose_a_faire, self.cout_reparations, self.temps_reparations,
+            self.prix_revente, self.prix_max_achat, self.prix_achat, self.statut,
+            self.champ_libre, "Oui" if self.reserve_professionnels else "Non"
         )
     
     def to_achetes_row(self) -> tuple:

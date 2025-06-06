@@ -1,0 +1,15 @@
+{
+  "id": "20250606_193744",
+  "nom": "test",
+  "date": "2025-06-06",
+  "lieu": "test2",
+  "description": "",
+  "date_creation": "2025-06-06T19:37:44.532079",
+  "parametres": {
+    "tarif_horaire": 45.0,
+    "commission_vente": 8.5,
+    "marge_securite": 200.0
+  },
+  "vehicules_reperage": [],
+  "vehicules_achetes": []
+}

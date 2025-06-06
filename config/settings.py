@@ -15,12 +15,22 @@ class AppSettings:
         self.fichier_donnees = "donnees_encheres.json"
         self.fichier_parametres = "parametres_encheres.json"
         
-        # Paramètres par défaut (MODIFIÉS : suppression commission_achat, ajout nouveaux paramètres)
+        # Paramètres par défaut (MODIFIÉS : ajout paramètres d'interface)
         self.parametres_defaut = {
             'tarif_horaire': 45.0,
             'commission_vente': 8.5,  # Commission lors de la vente (%)
             'marge_securite': 200.0,  # Marge de sécurité en euros
-            'mode_edition': 'double_clic'
+            'mode_edition': 'double_clic',
+            
+            # NOUVEAUX PARAMÈTRES D'INTERFACE
+            'hauteur_lignes_tableau': 30,  # Hauteur des lignes des tableaux (pixels)
+            'taille_police_tableau': 14,  # Taille de police dans les tableaux
+            'taille_police_entetes': 16,  # Taille de police des en-têtes de tableaux
+            'taille_police_titres': 20,  # Taille de police des titres principales
+            'taille_police_boutons': 12,  # Taille de police des boutons
+            'taille_police_labels': 12,  # Taille de police des labels normaux
+            'taille_police_champs': 12,  # Taille de police des champs de saisie
+            'largeur_colonnes_auto': True,  # Ajustement automatique des colonnes
         }
         
         # Couleurs du thème
@@ -110,4 +120,56 @@ class AppSettings:
             
         except Exception as e:
             print(f"⚠️ Erreur calcul prix max: {e}")
-            return 0.0 
+            return 0.0
+    
+    def get_font_config(self, element_type):
+        """
+        Retourne la configuration de police pour un type d'élément donné
+        
+        Args:
+            element_type (str): Type d'élément ('tableau', 'entetes', 'titres', 'boutons', 'labels', 'champs')
+        
+        Returns:
+            dict: Configuration de police avec 'family', 'size' et optionnellement 'weight'
+        """
+        base_size = self.parametres.get(f'taille_police_{element_type}', 12)
+        
+        configs = {
+            'tableau': {'family': 'Segoe UI', 'size': base_size},
+            'entetes': {'family': 'Segoe UI', 'size': base_size, 'weight': 'bold'},
+            'titres': {'family': 'Segoe UI', 'size': base_size, 'weight': 'bold'},
+            'boutons': {'family': 'Segoe UI', 'size': base_size, 'weight': 'bold'},
+            'labels': {'family': 'Segoe UI', 'size': base_size, 'weight': 'bold'},
+            'champs': {'family': 'Segoe UI', 'size': base_size}
+        }
+        
+        return configs.get(element_type, {'family': 'Segoe UI', 'size': 12})
+    
+    def get_ctk_font(self, element_type, weight=None):
+        """
+        Retourne un objet CTkFont configuré pour l'élément demandé
+        
+        Args:
+            element_type (str): Type d'élément
+            weight (str, optional): Poids de la police ('normal', 'bold')
+        
+        Returns:
+            CTkFont: Police configurée
+        """
+        try:
+            import customtkinter as ctk
+            config = self.get_font_config(element_type)
+            
+            font_weight = weight or config.get('weight', 'normal')
+            return ctk.CTkFont(
+                family=config['family'],
+                size=config['size'],
+                weight=font_weight
+            )
+        except ImportError:
+            # Fallback si CustomTkinter n'est pas disponible
+            return None
+    
+    def get_tableau_height(self):
+        """Retourne la hauteur des lignes de tableau configurée"""
+        return self.parametres.get('hauteur_lignes_tableau', 30) 

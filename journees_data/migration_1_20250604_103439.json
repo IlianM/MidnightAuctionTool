@@ -13,7 +13,16 @@
     "marge_minimum": 15.0,
     "commission_encheres": 8.0,
     "frais_fixes": 200.0,
-    "mode_edition": "double_clic"
+    "mode_edition": "double_clic",
+    "mode_sombre": false,
+    "hauteur_lignes_tableau": 30,
+    "taille_police_tableau": 18,
+    "taille_police_entetes": 16,
+    "taille_police_titres": 20,
+    "taille_police_boutons": 12,
+    "taille_police_labels": 12,
+    "taille_police_champs": 12,
+    "largeur_colonnes_auto": true
   },
   "vehicules_reperage": [
     {
@@ -26,10 +35,15 @@
       "cout_reparations": "1516",
       "temps_reparations": "9",
       "prix_revente": "10131",
+      "prix_vente_final": "",
       "prix_max_achat": "7329€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT104",
@@ -41,10 +55,15 @@
       "cout_reparations": "2042",
       "temps_reparations": "2",
       "prix_revente": "15549",
+      "prix_vente_final": "",
       "prix_max_achat": "11935€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT105",
@@ -56,10 +75,15 @@
       "cout_reparations": "2473",
       "temps_reparations": "8",
       "prix_revente": "14281",
+      "prix_vente_final": "",
       "prix_max_achat": "10194€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT107",
@@ -71,10 +95,15 @@
       "cout_reparations": "1626",
       "temps_reparations": "9",
       "prix_revente": "13683",
+      "prix_vente_final": "",
       "prix_max_achat": "10469€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT108",
@@ -86,10 +115,15 @@
       "cout_reparations": "1236",
       "temps_reparations": "9",
       "prix_revente": "7780",
+      "prix_vente_final": "",
       "prix_max_achat": "5458€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT109",
@@ -101,25 +135,15 @@
       "cout_reparations": "2483",
       "temps_reparations": "14",
       "prix_revente": "9498",
+      "prix_vente_final": "",
       "prix_max_achat": "5658€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
-    },
-    {
-      "lot": "LOT110",
-      "marque": "Nissan",
-      "modele": "Micra",
-      "annee": "2019",
-      "kilometrage": "167,000 km",
-      "chose_a_faire": "Nettoyage complet intérieur/extérieur",
-      "cout_reparations": "2153",
-      "temps_reparations": "15",
-      "prix_revente": "8486",
-      "prix_max_achat": "5037€",
-      "prix_achat": "",
-      "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT111",
@@ -131,10 +155,15 @@
       "cout_reparations": "1525",
       "temps_reparations": "4",
       "prix_revente": "12671",
+      "prix_vente_final": "",
       "prix_max_achat": "9769€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT112",
@@ -146,10 +175,15 @@
       "cout_reparations": "1071",
       "temps_reparations": "12",
       "prix_revente": "16774",
+      "prix_vente_final": "",
       "prix_max_achat": "13777€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT113",
@@ -161,10 +195,115 @@
       "cout_reparations": "1463",
       "temps_reparations": "20",
       "prix_revente": "9468",
+      "prix_vente_final": "",
       "prix_max_achat": "6500€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
+    },
+    {
+      "lot": "a",
+      "marque": "a",
+      "modele": "a",
+      "annee": "a",
+      "kilometrage": "a",
+      "chose_a_faire": "a",
+      "cout_reparations": "a",
+      "temps_reparations": "a",
+      "prix_revente": "a",
+      "prix_vente_final": "",
+      "prix_max_achat": "",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": "",
+      "motorisation": "a",
+      "champ_libre": "a",
+      "reserve_professionnels": true,
+      "couleur": "turquoise"
+    },
+    {
+      "lot": "b",
+      "marque": "z",
+      "modele": "z",
+      "annee": "z",
+      "kilometrage": "z",
+      "chose_a_faire": "z",
+      "cout_reparations": "z",
+      "temps_reparations": "z",
+      "prix_revente": "z",
+      "prix_vente_final": "",
+      "prix_max_achat": "",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": "",
+      "motorisation": "z",
+      "champ_libre": "z",
+      "reserve_professionnels": true,
+      "couleur": "vert"
+    },
+    {
+      "lot": "q",
+      "marque": "q",
+      "modele": "q",
+      "annee": "q",
+      "kilometrage": "q",
+      "chose_a_faire": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cout_reparations": "q",
+      "temps_reparations": "q",
+      "prix_revente": "q",
+      "prix_vente_final": "",
+      "prix_max_achat": "",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": "",
+      "motorisation": "q",
+      "champ_libre": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reserve_professionnels": true,
+      "couleur": "orange"
+    },
+    {
+      "lot": "q",
+      "marque": "qq",
+      "modele": "q",
+      "annee": "q",
+      "kilometrage": "q",
+      "chose_a_faire": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cout_reparations": "a",
+      "temps_reparations": "a",
+      "prix_revente": "q",
+      "prix_vente_final": "",
+      "prix_max_achat": "",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": "",
+      "motorisation": "q",
+      "champ_libre": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reserve_professionnels": true,
+      "couleur": "rouge"
+    },
+    {
+      "lot": "zy",
+      "marque": "z",
+      "modele": "z",
+      "annee": "z",
+      "kilometrage": "z",
+      "chose_a_faire": "zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz zzzzzzzzzzzzzzzzzzzzzzzzzzz ",
+      "cout_reparations": "z",
+      "temps_reparations": "z",
+      "prix_revente": "z",
+      "prix_vente_final": "",
+      "prix_max_achat": "",
+      "prix_achat": "",
+      "statut": "Repérage",
+      "date_achat": "",
+      "motorisation": "z",
+      "champ_libre": "zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz zzzzz ",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     }
   ],
   "vehicules_achetes": [
@@ -178,10 +317,15 @@
       "cout_reparations": "1636",
       "temps_reparations": "12",
       "prix_revente": "13288",
+      "prix_vente_final": "",
       "prix_max_achat": "9089",
       "prix_achat": "8750",
       "statut": "Acheté",
-      "date_achat": "2025-04-18T19:16:32.963084"
+      "date_achat": "2025-04-18T19:16:32.963084",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH201",
@@ -193,10 +337,15 @@
       "cout_reparations": "1852",
       "temps_reparations": "9",
       "prix_revente": "17686",
+      "prix_vente_final": "",
       "prix_max_achat": "12994",
       "prix_achat": "13439",
       "statut": "Acheté",
-      "date_achat": "2025-05-18T19:16:32.963106"
+      "date_achat": "2025-05-18T19:16:32.963106",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH202",
@@ -208,10 +357,15 @@
       "cout_reparations": "1770",
       "temps_reparations": "11",
       "prix_revente": "21610",
+      "prix_vente_final": "",
       "prix_max_achat": "16636",
       "prix_achat": "14831",
       "statut": "Acheté",
-      "date_achat": "2025-05-22T19:16:32.963127"
+      "date_achat": "2025-05-22T19:16:32.963127",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH203",
@@ -223,10 +377,15 @@
       "cout_reparations": "431",
       "temps_reparations": "8",
       "prix_revente": "20168",
+      "prix_vente_final": "",
       "prix_max_achat": "16724",
       "prix_achat": "19488",
       "statut": "Acheté",
-      "date_achat": "2025-05-24T19:16:32.963144"
+      "date_achat": "2025-05-24T19:16:32.963144",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH204",
@@ -238,10 +397,15 @@
       "cout_reparations": "595",
       "temps_reparations": "13",
       "prix_revente": "9573",
+      "prix_vente_final": "",
       "prix_max_achat": "6687",
       "prix_achat": "7003",
       "statut": "Acheté",
-      "date_achat": "2025-06-02T19:16:32.963162"
+      "date_achat": "2025-06-02T19:16:32.963162",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH205",
@@ -253,10 +417,15 @@
       "cout_reparations": "1648",
       "temps_reparations": "12",
       "prix_revente": "9484",
+      "prix_vente_final": "",
       "prix_max_achat": "5577",
       "prix_achat": "5376",
       "statut": "Acheté",
-      "date_achat": "2025-05-23T19:16:32.963177"
+      "date_achat": "2025-05-23T19:16:32.963177",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH206",
@@ -268,10 +437,15 @@
       "cout_reparations": "566",
       "temps_reparations": "3",
       "prix_revente": "12371",
+      "prix_vente_final": "",
       "prix_max_achat": "9540",
       "prix_achat": "7032",
       "statut": "Acheté",
-      "date_achat": "2025-05-21T19:16:32.963191"
+      "date_achat": "2025-05-21T19:16:32.963191",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "ACH207",
@@ -283,10 +457,15 @@
       "cout_reparations": "555",
       "temps_reparations": "7",
       "prix_revente": "19800",
+      "prix_vente_final": "",
       "prix_max_achat": "16286",
       "prix_achat": "15298",
       "statut": "Acheté",
-      "date_achat": "2025-05-06T19:16:32.963204"
+      "date_achat": "2025-05-06T19:16:32.963204",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT100",
@@ -298,10 +477,15 @@
       "cout_reparations": "2103",
       "temps_reparations": "4",
       "prix_revente": "11632",
+      "prix_vente_final": "",
       "prix_max_achat": "7298",
       "prix_achat": "10000",
       "statut": "Acheté",
-      "date_achat": "03/06/2025 19:28"
+      "date_achat": "03/06/2025 19:28",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT101",
@@ -313,10 +497,15 @@
       "cout_reparations": "102400",
       "temps_reparations": "16",
       "prix_revente": "11440",
+      "prix_vente_final": "",
       "prix_max_achat": "7901",
       "prix_achat": "5000",
       "statut": "Acheté",
-      "date_achat": "04/06/2025 01:07"
+      "date_achat": "04/06/2025 01:07",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT102",
@@ -328,10 +517,15 @@
       "cout_reparations": "1000",
       "temps_reparations": "10",
       "prix_revente": "15080",
+      "prix_vente_final": "",
       "prix_max_achat": "12092",
       "prix_achat": "1000",
       "statut": "Acheté",
-      "date_achat": "04/06/2025 01:08"
+      "date_achat": "04/06/2025 01:08",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT114",
@@ -343,10 +537,15 @@
       "cout_reparations": "1591",
       "temps_reparations": "10",
       "prix_revente": "17326",
+      "prix_vente_final": "",
       "prix_max_achat": "12899",
       "prix_achat": "9500",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "LOT106",
@@ -358,10 +557,35 @@
       "cout_reparations": "1396",
       "temps_reparations": "18",
       "prix_revente": "10970",
+      "prix_vente_final": "",
       "prix_max_achat": "7046",
       "prix_achat": "6000",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
+    },
+    {
+      "lot": "LOT110",
+      "marque": "Nissan",
+      "modele": "Micra",
+      "annee": "2019",
+      "kilometrage": "167,000 km",
+      "chose_a_faire": "Nettoyage complet intérieur/extérieur",
+      "cout_reparations": "2153",
+      "temps_reparations": "15",
+      "prix_revente": "8486",
+      "prix_vente_final": "",
+      "prix_max_achat": "5037€",
+      "prix_achat": "2000",
+      "statut": "Acheté",
+      "date_achat": "06/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     }
   ]
 }

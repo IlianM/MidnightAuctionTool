@@ -9,7 +9,15 @@
     "tarif_horaire": 0.0,
     "commission_vente": 14.0,
     "marge_securite": 200.0,
-    "mode_sombre": false
+    "mode_sombre": false,
+    "hauteur_lignes_tableau": 50,
+    "taille_police_tableau": 18,
+    "taille_police_entetes": 16,
+    "taille_police_titres": 20,
+    "taille_police_boutons": 12,
+    "taille_police_labels": 12,
+    "taille_police_champs": 12,
+    "largeur_colonnes_auto": true
   },
   "vehicules_reperage": [
     {
@@ -25,7 +33,11 @@
       "prix_max_achat": "4660€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "2",
@@ -40,7 +52,11 @@
       "prix_max_achat": "2280€",
       "prix_achat": "",
       "statut": "Repérage",
-      "date_achat": ""
+      "date_achat": "",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     }
   ],
   "vehicules_achetes": [
@@ -57,7 +73,11 @@
       "prix_max_achat": "9936€",
       "prix_achat": "10000€",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "1",
@@ -72,7 +92,11 @@
       "prix_max_achat": "8511€",
       "prix_achat": "9999€",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "20",
@@ -87,7 +111,11 @@
       "prix_max_achat": "100€",
       "prix_achat": "700€",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "a",
@@ -102,7 +130,11 @@
       "prix_max_achat": "",
       "prix_achat": "50000",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     },
     {
       "lot": "b",
@@ -117,7 +149,11 @@
       "prix_max_achat": "",
       "prix_achat": "50000€",
       "statut": "Acheté",
-      "date_achat": "04/06/2025"
+      "date_achat": "04/06/2025",
+      "motorisation": "",
+      "champ_libre": "",
+      "reserve_professionnels": false,
+      "couleur": "turquoise"
     }
   ]
 }

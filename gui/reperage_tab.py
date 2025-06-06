@@ -20,7 +20,7 @@ from reportlab.pdfgen import canvas
 
 from config.settings import AppSettings
 from utils.tooltips import ajouter_tooltip, TOOLTIPS
-from utils.dialogs import demander_prix_achat
+from utils.dialogs import demander_prix_achat, afficher_info_vehicule
 from models.vehicule import Vehicule
 
 class ReperageTab:
@@ -40,6 +40,9 @@ class ReperageTab:
         self.edit_entry = None  # Widget d'édition temporaire
         self.editing_item = None
         self.editing_column = None
+        
+        # Variables pour le tri
+        self.tri_actuel = {'colonne': None, 'sens': 'asc'}  # 'asc' ou 'desc'
         
         # Variables pour l'actualisation automatique
         self.auto_refresh_enabled = True
@@ -62,7 +65,7 @@ class ReperageTab:
         titre = ctk.CTkLabel(
             self.scrollable_frame,
             text="🔍 REPÉRAGE DE VÉHICULES",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=self.get_font_from_settings('titres')
         )
         titre.pack(pady=(0, 20))
         
@@ -90,7 +93,7 @@ class ReperageTab:
         search_title = ctk.CTkLabel(
             search_frame,
             text="🔎 RECHERCHE",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=self.get_font_from_settings('titres')
         )
         search_title.pack(pady=(15, 10))
         
@@ -102,7 +105,7 @@ class ReperageTab:
         search_label = ctk.CTkLabel(
             search_input_frame,
             text="Rechercher:",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=self.get_font_from_settings('labels'),
             width=100
         )
         search_label.pack(side="left", padx=10, pady=10)
@@ -116,7 +119,7 @@ class ReperageTab:
             search_input_frame,
             textvariable=self.var_recherche,
             placeholder_text="N° lot, marque ou modèle...",
-            font=ctk.CTkFont(size=12),
+            font=self.get_font_from_settings('champs'),
             width=300
         )
         self.entry_recherche.pack(side="left", padx=10, pady=10, fill="x", expand=True)
@@ -126,7 +129,7 @@ class ReperageTab:
             search_input_frame,
             text="🗑️ Effacer",
             command=self.effacer_recherche,
-            font=ctk.CTkFont(size=12),
+            font=self.get_font_from_settings('boutons'),
             width=100
         )
         clear_button.pack(side="right", padx=10, pady=10)
@@ -136,7 +139,7 @@ class ReperageTab:
         ajouter_tooltip(clear_button, TOOLTIPS['btn_effacer_recherche'])
     
     def creer_section_saisie(self, parent):
-        """Crée la section de saisie rapide simplifiée"""
+        """Crée la section de saisie rapide avec les nouveaux champs"""
         frame_saisie = ctk.CTkFrame(parent)
         frame_saisie.pack(fill="x", pady=(0, 20))
         
@@ -144,24 +147,28 @@ class ReperageTab:
         titre_saisie = ctk.CTkLabel(
             frame_saisie,
             text="⚡ SAISIE RAPIDE VÉHICULE",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=self.get_font_from_settings('titres')
         )
         titre_saisie.pack(pady=(15, 20))
         
-        # Initialiser les variables
+        # Initialiser les variables (MISES À JOUR avec nouveaux champs)
         self.vars_saisie = {
             'lot': ctk.StringVar(),
             'marque': ctk.StringVar(),
             'modele': ctk.StringVar(),
             'annee': ctk.StringVar(),
             'kilometrage': ctk.StringVar(),
+            'motorisation': ctk.StringVar(),  # NOUVEAU
             'prix_revente': ctk.StringVar(),
             'cout_reparations': ctk.StringVar(),
             'temps_reparations': ctk.StringVar(),
-            'chose_a_faire': ctk.StringVar()
+            'chose_a_faire': ctk.StringVar(),
+            'champ_libre': ctk.StringVar(),  # NOUVEAU
+            'reserve_professionnels': ctk.BooleanVar(),  # NOUVEAU
+            'couleur': ctk.StringVar(value='turquoise')  # NOUVEAU
         }
         
-        # Grille de saisie
+        # Grille de saisie avec 4 lignes maintenant
         grid_frame = ctk.CTkFrame(frame_saisie)
         grid_frame.pack(fill="x", padx=20, pady=(0, 20))
         
@@ -170,48 +177,48 @@ class ReperageTab:
         row1.pack(fill="x", pady=5)
         
         # Lot
-        lot_label = ctk.CTkLabel(row1, text="N° LOT:", width=80)
+        lot_label = ctk.CTkLabel(row1, text="N° LOT:", width=80, font=self.get_font_from_settings('labels'))
         lot_label.pack(side="left", padx=5)
-        lot_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['lot'], width=100)
+        lot_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['lot'], width=100, font=self.get_font_from_settings('champs'))
         lot_entry.pack(side="left", padx=5)
         ajouter_tooltip(lot_label, TOOLTIPS['lot'])
         ajouter_tooltip(lot_entry, TOOLTIPS['lot'])
         
         # Marque
-        marque_label = ctk.CTkLabel(row1, text="MARQUE:", width=80)
+        marque_label = ctk.CTkLabel(row1, text="MARQUE:", width=80, font=self.get_font_from_settings('labels'))
         marque_label.pack(side="left", padx=5)
-        marque_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['marque'], width=120)
+        marque_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['marque'], width=120, font=self.get_font_from_settings('champs'))
         marque_entry.pack(side="left", padx=5)
         ajouter_tooltip(marque_label, TOOLTIPS['marque'])
         ajouter_tooltip(marque_entry, TOOLTIPS['marque'])
         
         # Modèle
-        modele_label = ctk.CTkLabel(row1, text="MODÈLE:", width=80)
+        modele_label = ctk.CTkLabel(row1, text="MODÈLE:", width=80, font=self.get_font_from_settings('labels'))
         modele_label.pack(side="left", padx=5)
-        modele_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['modele'], width=120)
+        modele_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['modele'], width=120, font=self.get_font_from_settings('champs'))
         modele_entry.pack(side="left", padx=5)
         ajouter_tooltip(modele_label, TOOLTIPS['modele'])
         ajouter_tooltip(modele_entry, TOOLTIPS['modele'])
         
         # Année
-        annee_label = ctk.CTkLabel(row1, text="ANNÉE:", width=80)
+        annee_label = ctk.CTkLabel(row1, text="ANNÉE:", width=80, font=self.get_font_from_settings('labels'))
         annee_label.pack(side="left", padx=5)
-        annee_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['annee'], width=80)
+        annee_entry = ctk.CTkEntry(row1, textvariable=self.vars_saisie['annee'], width=80, font=self.get_font_from_settings('champs'))
         annee_entry.pack(side="left", padx=5)
         ajouter_tooltip(annee_label, TOOLTIPS['annee'])
         ajouter_tooltip(annee_entry, TOOLTIPS['annee'])
         
-        # Ligne 2: Prix et coûts
+        # Ligne 2: Kilométrage et motorisation
         row2 = ctk.CTkFrame(grid_frame)
         row2.pack(fill="x", pady=5)
         
         # Kilométrage avec formatage automatique en temps réel
-        km_label = ctk.CTkLabel(row2, text="KM:", width=80)
+        km_label = ctk.CTkLabel(row2, text="KM:", width=80, font=self.get_font_from_settings('labels'))
         km_label.pack(side="left", padx=5)
-        km_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['kilometrage'], width=100)
+        km_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['kilometrage'], width=100, font=self.get_font_from_settings('champs'))
         km_entry.pack(side="left", padx=5)
         
-        # Bind pour formatage automatique en temps réel
+        # Bind pour formatage automatique du kilométrage
         def formater_kilometrage_temps_reel(*args):
             """Formate le kilométrage en temps réel pendant la saisie"""
             valeur = self.vars_saisie['kilometrage'].get()
@@ -261,65 +268,93 @@ class ReperageTab:
         # Bind pour formatage en temps réel
         self.vars_saisie['kilometrage'].trace('w', formater_kilometrage_temps_reel)
         
-        # Bind traditionnel pour la sortie de focus (sécurité)
-        def formater_kilometrage_focus(event):
-            """Formatage de sécurité au focus"""
-            valeur = self.vars_saisie['kilometrage'].get().strip()
-            if valeur and not valeur.endswith('km'):
-                try:
-                    chiffres_seulement = ''.join(filter(str.isdigit, valeur))
-                    if chiffres_seulement:
-                        km = int(chiffres_seulement)
-                        if 1 <= km <= 999:
-                            valeur_formatee = f"{km},000km"
-                            self.vars_saisie['kilometrage'].set(valeur_formatee)
-                        elif km >= 1000:
-                            if km >= 100000:
-                                valeur_formatee = f"{km:,}km".replace(',', ' ')
-                            else:
-                                valeur_formatee = f"{km}km"
-                            self.vars_saisie['kilometrage'].set(valeur_formatee)
-                except:
-                    pass
-        
-        km_entry.bind('<FocusOut>', formater_kilometrage_focus)
-        
         ajouter_tooltip(km_label, TOOLTIPS['kilometrage'])
         ajouter_tooltip(km_entry, "Kilométrage du véhicule. Tapez juste le nombre (ex: 330 devient automatiquement 330,000km en temps réel)")
         
+        # NOUVEAU : Motorisation
+        motorisation_label = ctk.CTkLabel(row2, text="MOTORISATION:", width=120, font=self.get_font_from_settings('labels'))
+        motorisation_label.pack(side="left", padx=5)
+        motorisation_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['motorisation'], width=150, font=self.get_font_from_settings('champs'))
+        motorisation_entry.pack(side="left", padx=5)
+        ajouter_tooltip(motorisation_label, "Type de motorisation du véhicule (ex: Diesel, Essence, Hybride)")
+        ajouter_tooltip(motorisation_entry, "Type de motorisation du véhicule (ex: Diesel, Essence, Hybride)")
+        
+        # NOUVEAU : Couleur
+        couleur_label = ctk.CTkLabel(row2, text="COULEUR:", width=80, font=self.get_font_from_settings('labels'))
+        couleur_label.pack(side="left", padx=5)
+        couleur_combo = ctk.CTkComboBox(
+            row2, 
+            variable=self.vars_saisie['couleur'],
+            values=['turquoise', 'vert', 'orange', 'rouge'],
+            width=120,
+            font=self.get_font_from_settings('champs'),
+            state="readonly"
+        )
+        couleur_combo.pack(side="left", padx=5)
+        ajouter_tooltip(couleur_label, "Couleur d'affichage de la ligne dans le tableau")
+        ajouter_tooltip(couleur_combo, "Couleur d'affichage de la ligne dans le tableau")
+        
+        # Ligne 3: Prix et coûts
+        row3 = ctk.CTkFrame(grid_frame)
+        row3.pack(fill="x", pady=5)
+        
         # Prix revente
-        prix_rev_label = ctk.CTkLabel(row2, text="PRIX REVENTE:", width=100)
+        prix_rev_label = ctk.CTkLabel(row3, text="PRIX REVENTE:", width=100, font=self.get_font_from_settings('labels'))
         prix_rev_label.pack(side="left", padx=5)
-        prix_rev_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['prix_revente'], width=100)
+        prix_rev_entry = ctk.CTkEntry(row3, textvariable=self.vars_saisie['prix_revente'], width=100, font=self.get_font_from_settings('champs'))
         prix_rev_entry.pack(side="left", padx=5)
         ajouter_tooltip(prix_rev_label, TOOLTIPS['prix_revente'])
         ajouter_tooltip(prix_rev_entry, TOOLTIPS['prix_revente'])
         
         # Coût réparations
-        cout_rep_label = ctk.CTkLabel(row2, text="COÛT RÉPAR:", width=100)
+        cout_rep_label = ctk.CTkLabel(row3, text="COÛT RÉPAR:", width=100, font=self.get_font_from_settings('labels'))
         cout_rep_label.pack(side="left", padx=5)
-        cout_rep_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['cout_reparations'], width=100)
+        cout_rep_entry = ctk.CTkEntry(row3, textvariable=self.vars_saisie['cout_reparations'], width=100, font=self.get_font_from_settings('champs'))
         cout_rep_entry.pack(side="left", padx=5)
         ajouter_tooltip(cout_rep_label, TOOLTIPS['cout_reparations'])
         ajouter_tooltip(cout_rep_entry, TOOLTIPS['cout_reparations'])
         
         # Temps réparations
-        temps_rep_label = ctk.CTkLabel(row2, text="TEMPS (h):", width=80)
+        temps_rep_label = ctk.CTkLabel(row3, text="TEMPS (h):", width=80, font=self.get_font_from_settings('labels'))
         temps_rep_label.pack(side="left", padx=5)
-        temps_rep_entry = ctk.CTkEntry(row2, textvariable=self.vars_saisie['temps_reparations'], width=80)
+        temps_rep_entry = ctk.CTkEntry(row3, textvariable=self.vars_saisie['temps_reparations'], width=80, font=self.get_font_from_settings('champs'))
         temps_rep_entry.pack(side="left", padx=5)
         ajouter_tooltip(temps_rep_label, TOOLTIPS['temps_reparations'])
         ajouter_tooltip(temps_rep_entry, TOOLTIPS['temps_reparations'])
         
-        # Ligne 3: Description des réparations
-        row3 = ctk.CTkFrame(grid_frame)
-        row3.pack(fill="x", pady=5)
+        # NOUVEAU : Réservé aux professionnels
+        pro_check = ctk.CTkCheckBox(
+            row3,
+            text="Réservé aux pros",
+            variable=self.vars_saisie['reserve_professionnels'],
+            font=self.get_font_from_settings('labels')
+        )
+        pro_check.pack(side="left", padx=15)
+        ajouter_tooltip(pro_check, "Cochez si ce véhicule est réservé aux professionnels uniquement")
         
-        desc_label = ctk.CTkLabel(row3, text="DESCRIPTION RÉPARATIONS:", width=180)
-        desc_entry = ctk.CTkEntry(row3, textvariable=self.vars_saisie['chose_a_faire'], width=400)
+        # Ligne 4: Descriptions
+        row4 = ctk.CTkFrame(grid_frame)
+        row4.pack(fill="x", pady=5)
+        
+        # Description des réparations
+        desc_label = ctk.CTkLabel(row4, text="DESCRIPTION RÉPAR:", width=140, font=self.get_font_from_settings('labels'))
+        desc_label.pack(side="left", padx=5)
+        desc_entry = ctk.CTkEntry(row4, textvariable=self.vars_saisie['chose_a_faire'], width=300, font=self.get_font_from_settings('champs'))
         desc_entry.pack(side="left", padx=5, fill="x", expand=True)
         ajouter_tooltip(desc_label, "Description détaillée des réparations à effectuer sur le véhicule")
         ajouter_tooltip(desc_entry, "Description détaillée des réparations à effectuer sur le véhicule")
+        
+        # Ligne 5: Champ libre
+        row5 = ctk.CTkFrame(grid_frame)
+        row5.pack(fill="x", pady=5)
+        
+        # NOUVEAU : Champ libre
+        libre_label = ctk.CTkLabel(row5, text="CHAMP LIBRE:", width=140, font=self.get_font_from_settings('labels'))
+        libre_label.pack(side="left", padx=5)
+        libre_entry = ctk.CTkEntry(row5, textvariable=self.vars_saisie['champ_libre'], width=400, font=self.get_font_from_settings('champs'))
+        libre_entry.pack(side="left", padx=5, fill="x", expand=True)
+        ajouter_tooltip(libre_label, "Champ libre pour noter des informations supplémentaires")
+        ajouter_tooltip(libre_entry, "Champ libre pour noter des informations supplémentaires")
         
         # Boutons de saisie
         buttons_frame = ctk.CTkFrame(frame_saisie)
@@ -329,7 +364,7 @@ class ReperageTab:
             buttons_frame,
             text="➕ AJOUTER VÉHICULE",
             command=self.ajouter_vehicule,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         add_button.pack(side="left", padx=10, pady=10)
         ajouter_tooltip(add_button, TOOLTIPS['btn_ajouter'])
@@ -338,13 +373,13 @@ class ReperageTab:
             buttons_frame,
             text="🗑️ VIDER",
             command=self.vider_champs,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         clear_button.pack(side="left", padx=10, pady=10)
         ajouter_tooltip(clear_button, TOOLTIPS['btn_vider'])
     
     def creer_section_tableau(self, parent):
-        """Crée la section tableau avec la nouvelle colonne Prix Max"""
+        """Crée la section tableau avec les nouvelles colonnes et tri"""
         tableau_frame = ctk.CTkFrame(parent)
         tableau_frame.pack(fill="both", expand=True, pady=(0, 20))
         
@@ -352,7 +387,7 @@ class ReperageTab:
         titre_tableau = ctk.CTkLabel(
             tableau_frame,
             text="📋 VÉHICULES EN REPÉRAGE",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=self.get_font_from_settings('titres')
         )
         titre_tableau.pack(pady=(15, 20))
         
@@ -361,48 +396,82 @@ class ReperageTab:
         container.pack(fill="both", expand=True, padx=20, pady=(0, 15))
         container.configure(height=250)  # Hauteur minimale de 250px
         
-        # Tableau (MODIFIÉ : ajout colonne description_reparations)
-        columns = ("lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut")
-        self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=8)  # Hauteur optimisée
+        # Tableau (MODIFIÉ : ajout nouvelles colonnes)
+        columns = ("lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro")
+        self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=8)
         
-        # Configuration du style pour agrandir la police
-        style = ttk.Style()
-        style.configure("Treeview", font=('Segoe UI', 14), rowheight=30)
-        style.configure("Treeview.Heading", font=('Segoe UI', 16, 'bold'))  # Police plus petite pour les en-têtes
+        # Configuration du style pour utiliser les paramètres de la journée
+        self.configurer_style_tableau()
         
-        # Configuration des colonnes (MODIFIÉE avec Description et Prix Max)
+        # Configuration des colonnes (MODIFIÉE avec nouvelles colonnes)
         headings = {
-            "lot": "LOT",
-            "marque": "MARQUE",
-            "modele": "MODÈLE", 
-            "annee": "ANNÉE",
-            "kilometrage": "KM",
-            "prix_revente": "PRIX REVENTE",
-            "cout_reparations": "COÛT RÉPAR",
-            "temps_reparations": "TEMPS (h)",
-            "description_reparations": "DESCRIPTION RÉPAR",  # NOUVEAU
-            "prix_max": "PRIX MAX",
-            "prix_achat": "PRIX ACHAT",
-            "statut": "STATUT"
+            "lot": "LOT ↕",
+            "marque": "MARQUE ↕",
+            "modele": "MODÈLE ↕", 
+            "annee": "ANNÉE ↕",
+            "kilometrage": "KM ↕",
+            "motorisation": "MOTORISATION ↕",  # NOUVEAU
+            "prix_revente": "PRIX REVENTE ↕",
+            "cout_reparations": "COÛT RÉPAR ↕",
+            "temps_reparations": "TEMPS (h) ↕",
+            "description_reparations": "DESCRIPTION RÉPAR ↕",
+            "prix_max": "PRIX MAX",  # Pas de tri (calculé)
+            "prix_achat": "PRIX ACHAT ↕",
+            "marge": "ÉCART BUDGET",  # MODIFIÉ - Pas de tri (calculé)
+            "statut": "STATUT",  # Pas de tri (automatique)
+            "champ_libre": "CHAMP LIBRE ↕",  # NOUVEAU
+            "reserve_pro": "RÉSERVÉ PRO ↕"  # NOUVEAU
         }
         
         for col, heading in headings.items():
             self.tree_reperage.heading(col, text=heading)
-            if col in ["lot", "annee", "kilometrage", "temps_reparations"]:
-                self.tree_reperage.column(col, width=80, anchor="center")
-            elif col in ["prix_revente", "cout_reparations", "prix_max", "prix_achat"]:
-                self.tree_reperage.column(col, width=100, anchor="center")
-            elif col == "statut":
-                self.tree_reperage.column(col, width=100, anchor="center")
-            elif col == "description_reparations":
-                self.tree_reperage.column(col, width=200, anchor="w")  # Plus large pour la description
+            
+            # Ajouter le callback de tri pour les colonnes avec ↕
+            if "↕" in heading:
+                self.tree_reperage.heading(col, command=lambda c=col: self.trier_par_colonne(c))
+            
+            # Ajuster les largeurs selon le contenu
+            if self.get_param_from_journee('largeur_colonnes_auto', True):
+                if col in ["lot", "annee", "temps_reparations"]:
+                    self.tree_reperage.column(col, width=80, anchor="center", minwidth=60)
+                elif col in ["kilometrage", "reserve_pro"]:
+                    self.tree_reperage.column(col, width=100, anchor="center", minwidth=80)
+                elif col in ["prix_revente", "cout_reparations", "prix_max", "prix_achat"]:
+                    self.tree_reperage.column(col, width=110, anchor="center", minwidth=90)
+                elif col == "marge":  # NOUVEAU
+                    self.tree_reperage.column(col, width=130, anchor="center", minwidth=100)
+                elif col == "statut":
+                    self.tree_reperage.column(col, width=100, anchor="center", minwidth=80)
+                elif col in ["description_reparations", "champ_libre"]:
+                    self.tree_reperage.column(col, width=180, anchor="w", minwidth=120)
+                elif col == "motorisation":
+                    self.tree_reperage.column(col, width=120, anchor="center", minwidth=100)
+                else:
+                    self.tree_reperage.column(col, width=130, anchor="w", minwidth=100)
             else:
-                self.tree_reperage.column(col, width=120, anchor="w")
+                # Tailles fixes traditionnelles
+                if col in ["lot", "annee", "temps_reparations"]:
+                    self.tree_reperage.column(col, width=80, anchor="center")
+                elif col in ["kilometrage", "reserve_pro"]:
+                    self.tree_reperage.column(col, width=100, anchor="center")
+                elif col in ["prix_revente", "cout_reparations", "prix_max", "prix_achat"]:
+                    self.tree_reperage.column(col, width=100, anchor="center")
+                elif col == "marge":  # NOUVEAU
+                    self.tree_reperage.column(col, width=120, anchor="center")
+                elif col == "statut":
+                    self.tree_reperage.column(col, width=100, anchor="center")
+                elif col in ["description_reparations", "champ_libre"]:
+                    self.tree_reperage.column(col, width=160, anchor="w")
+                elif col == "motorisation":
+                    self.tree_reperage.column(col, width=120, anchor="center")
+                else:
+                    self.tree_reperage.column(col, width=120, anchor="w")
         
-        # Configuration des tags de couleur
-        self.tree_reperage.tag_configure('reperage', background='#2196F3', foreground='white')  # Bleu avec texte blanc
-        self.tree_reperage.tag_configure('achete', background='#4CAF50', foreground='white')    # Vert avec texte blanc
-        self.tree_reperage.tag_configure('perte', background='#F44336', foreground='white')     # Rouge avec texte blanc
+        # Configuration des tags de couleur (MODIFIÉS selon nouvelles couleurs utilisateur)
+        self.tree_reperage.tag_configure('couleur_turquoise', background='#1ABC9C', foreground='white')
+        self.tree_reperage.tag_configure('couleur_vert', background='#2ECC71', foreground='white')
+        self.tree_reperage.tag_configure('couleur_orange', background='#F39C12', foreground='white')
+        self.tree_reperage.tag_configure('couleur_rouge', background='#E74C3C', foreground='white')
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree_reperage.yview)
@@ -419,11 +488,291 @@ class ReperageTab:
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         
-        # Bind pour édition au double-clic
+        # Bind pour édition au double-clic (MODIFIÉ pour gestion spéciale du lot)
         self.tree_reperage.bind("<Double-1>", self.on_double_click)
+        
+        # Initialiser les indicateurs visuels de tri
+        self.mettre_a_jour_indicateurs_tri()
         
         # Ajouter tooltips aux en-têtes
         self.ajouter_tooltips_colonnes()
+    
+    def trier_par_colonne(self, colonne):
+        """Trie le tableau par la colonne sélectionnée"""
+        # Déterminer le sens du tri
+        if self.tri_actuel['colonne'] == colonne:
+            # Inverser le sens si on clique sur la même colonne
+            self.tri_actuel['sens'] = 'desc' if self.tri_actuel['sens'] == 'asc' else 'asc'
+        else:
+            # Nouveau tri par défaut en ascendant
+            self.tri_actuel['colonne'] = colonne
+            self.tri_actuel['sens'] = 'asc'
+        
+        # Mettre à jour les indicateurs visuels dans les en-têtes
+        self.mettre_a_jour_indicateurs_tri()
+        
+        # Actualiser l'affichage avec le tri
+        self.actualiser()
+    
+    def mettre_a_jour_indicateurs_tri(self):
+        """Met à jour les indicateurs visuels de tri dans les en-têtes"""
+        # Mapping des en-têtes avec leurs indicateurs
+        headings_base = {
+            "lot": "LOT",
+            "marque": "MARQUE",
+            "modele": "MODÈLE", 
+            "annee": "ANNÉE",
+            "kilometrage": "KM",
+            "motorisation": "MOTORISATION",
+            "prix_revente": "PRIX REVENTE",
+            "cout_reparations": "COÛT RÉPAR",
+            "temps_reparations": "TEMPS (h)",
+            "description_reparations": "DESCRIPTION RÉPAR",
+            "prix_max": "PRIX MAX",  # Pas de tri
+            "prix_achat": "PRIX ACHAT",
+            "marge": "ÉCART BUDGET",  # Pas de tri
+            "statut": "STATUT",  # Pas de tri
+            "champ_libre": "CHAMP LIBRE",
+            "reserve_pro": "RÉSERVÉ PRO"
+        }
+        
+        # Colonnes non triables
+        colonnes_non_triables = ["prix_max", "marge", "statut"]
+        
+        for col, heading_base in headings_base.items():
+            if col in colonnes_non_triables:
+                # Pas d'indicateur pour ces colonnes
+                self.tree_reperage.heading(col, text=heading_base)
+            else:
+                # Ajouter l'indicateur approprié
+                if self.tri_actuel['colonne'] == col:
+                    if self.tri_actuel['sens'] == 'asc':
+                        indicateur = " ↑"
+                    else:
+                        indicateur = " ↓"
+                else:
+                    indicateur = " ↕"
+                
+                self.tree_reperage.heading(col, text=heading_base + indicateur)
+    
+    def appliquer_tri(self, vehicules):
+        """Applique le tri sur la liste de véhicules"""
+        if not self.tri_actuel['colonne']:
+            return vehicules
+        
+        colonne = self.tri_actuel['colonne']
+        sens_inverse = self.tri_actuel['sens'] == 'desc'
+        
+        # Mapper les noms de colonnes vers les attributs du véhicule
+        attribut_map = {
+            'lot': 'lot',
+            'marque': 'marque',
+            'modele': 'modele',
+            'annee': 'annee',
+            'kilometrage': 'kilometrage',
+            'motorisation': 'motorisation',
+            'prix_revente': 'prix_revente',
+            'cout_reparations': 'cout_reparations',
+            'temps_reparations': 'temps_reparations',
+            'description_reparations': 'chose_a_faire',
+            'prix_achat': 'prix_achat',
+            'champ_libre': 'champ_libre',
+            'reserve_pro': 'reserve_professionnels'
+        }
+        
+        attribut = attribut_map.get(colonne)
+        if not attribut:
+            return vehicules
+        
+        def get_sort_key(vehicule):
+            """Fonction pour récupérer la clé de tri améliorée"""
+            try:
+                valeur = getattr(vehicule, attribut, '')
+                
+                # Traitement spécial selon le type de donnée
+                if colonne in ['prix_revente', 'cout_reparations', 'temps_reparations', 'prix_achat']:
+                    # Valeurs numériques - nettoyage amélioré
+                    if not valeur or str(valeur).strip() == '':
+                        return 0.0
+                    try:
+                        # Nettoyer les caractères non numériques
+                        valeur_nettoyee = str(valeur).replace('€', '').replace(' ', '').replace(',', '.')
+                        # Garder seulement les chiffres et le point décimal
+                        valeur_numerique = ''
+                        point_trouve = False
+                        for char in valeur_nettoyee:
+                            if char.isdigit():
+                                valeur_numerique += char
+                            elif char == '.' and not point_trouve:
+                                valeur_numerique += char
+                                point_trouve = True
+                        
+                        return float(valeur_numerique) if valeur_numerique else 0.0
+                    except (ValueError, TypeError):
+                        return 0.0
+                        
+                elif colonne == 'annee':
+                    # Années - gestion améliorée
+                    if not valeur or str(valeur).strip() == '':
+                        return 0
+                    try:
+                        # Extraire seulement les chiffres
+                        annee_str = ''.join(c for c in str(valeur) if c.isdigit())
+                        return int(annee_str) if annee_str else 0
+                    except (ValueError, TypeError):
+                        return 0
+                        
+                elif colonne == 'kilometrage':
+                    # Kilométrage - traitement spécial
+                    if not valeur or str(valeur).strip() == '':
+                        return 0
+                    try:
+                        # Nettoyer et extraire le nombre
+                        km_str = str(valeur).replace(' ', '').replace(',', '').replace('.', '')
+                        km_str = ''.join(c for c in km_str if c.isdigit())
+                        return int(km_str) if km_str else 0
+                    except (ValueError, TypeError):
+                        return 0
+                        
+                elif colonne == 'reserve_pro':
+                    # Booléen - conversion explicite
+                    try:
+                        return bool(vehicule.reserve_professionnels)
+                    except:
+                        return False
+                        
+                elif colonne == 'lot':
+                    # Numéro de lot - tri intelligent
+                    if not valeur or str(valeur).strip() == '':
+                        return ('', 0)  # Tuple pour tri : chaîne vide + nombre 0
+                    
+                    lot_str = str(valeur).strip()
+                    
+                    # Essayer d'extraire un nombre du lot
+                    import re
+                    match = re.search(r'(\d+)', lot_str)
+                    if match:
+                        numero = int(match.group(1))
+                        # Retourner un tuple (partie alphabétique, numéro) pour tri naturel
+                        partie_alpha = lot_str[:match.start()].lower()
+                        return (partie_alpha, numero)
+                    else:
+                        # Pas de nombre trouvé, tri alphabétique
+                        return (lot_str.lower(), 0)
+                        
+                else:
+                    # Texte standard (marque, modèle, etc.) - insensible à la casse
+                    if not valeur:
+                        return ''
+                    return str(valeur).lower().strip()
+                    
+            except Exception as e:
+                # En cas d'erreur, retourner une valeur neutre selon le type
+                print(f"⚠️ Erreur tri colonne {colonne}: {e}")
+                if colonne in ['prix_revente', 'cout_reparations', 'temps_reparations', 'prix_achat']:
+                    return 0.0
+                elif colonne in ['annee', 'kilometrage']:
+                    return 0
+                elif colonne == 'reserve_pro':
+                    return False
+                elif colonne == 'lot':
+                    return ('', 0)
+                else:
+                    return ''
+        
+        try:
+            return sorted(vehicules, key=get_sort_key, reverse=sens_inverse)
+        except Exception as e:
+            print(f"❌ Erreur lors du tri: {e}")
+            return vehicules  # Retourner la liste originale en cas d'erreur
+    
+    def configurer_style_tableau(self):
+        """Configure le style du tableau selon les paramètres de la journée"""
+        style = ttk.Style()
+        
+        # Récupérer les tailles depuis les paramètres de la journée
+        taille_contenu = self.get_param_from_journee('taille_police_tableau', 14)
+        taille_entetes = self.get_param_from_journee('taille_police_entetes', 16) 
+        hauteur_lignes = self.get_param_from_journee('hauteur_lignes_tableau', 30)
+        
+        # Configurer les styles
+        style.configure("Treeview", 
+                       font=('Segoe UI', taille_contenu), 
+                       rowheight=hauteur_lignes)
+        style.configure("Treeview.Heading", 
+                       font=('Segoe UI', taille_entetes, 'bold'))
+    
+    def get_param_from_journee(self, param_name, default_value):
+        """Récupère un paramètre depuis la journée ou fallback vers les settings puis valeur par défaut"""
+        if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+            return self.data_adapter.journee.parametres.get(param_name, default_value)
+        return self.settings.parametres.get(param_name, default_value)
+    
+    def get_font_from_settings(self, element_type):
+        """Retourne une police CTkFont configurée selon les paramètres de la journée"""
+        if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+            # Utiliser les paramètres de la journée
+            taille = self.data_adapter.journee.parametres.get(f'taille_police_{element_type}', 12)
+        else:
+            # Fallback vers les settings
+            taille = self.settings.parametres.get(f'taille_police_{element_type}', 12)
+        
+        if element_type in ['titres', 'entetes', 'boutons', 'labels']:
+            return ctk.CTkFont(size=taille, weight="bold")
+        else:
+            return ctk.CTkFont(size=taille)
+    
+    def appliquer_parametres_interface(self, parametres_temp=None):
+        """Applique les paramètres d'interface (pour aperçu ou sauvegarde définitive)"""
+        # Utiliser les paramètres temporaires ou ceux de la journée
+        if parametres_temp:
+            params = parametres_temp
+        elif hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+            params = self.data_adapter.journee.parametres
+        else:
+            return  # Pas de paramètres disponibles
+        
+        # Reconfigurer le style du tableau
+        if hasattr(self, 'tree_reperage') and self.tree_reperage.winfo_exists():
+            self.configurer_style_tableau()
+        
+        # Mettre à jour les titres et boutons si possible
+        try:
+            # Parcourir tous les widgets pour mettre à jour les polices
+            self.mettre_a_jour_polices_recursive(self.scrollable_frame, params)
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour des polices: {e}")
+    
+    def mettre_a_jour_polices_recursive(self, widget, params):
+        """Met à jour récursivement les polices des widgets selon les paramètres"""
+        try:
+            # Mettre à jour les CTkLabel (titres, labels)
+            if isinstance(widget, ctk.CTkLabel):
+                text = widget.cget("text")
+                if "📋" in text or "🔍" in text or "⚡" in text or "🔎" in text:  # Titres principaux
+                    nouvelle_taille = params.get('taille_police_titres', 20)
+                    widget.configure(font=ctk.CTkFont(size=nouvelle_taille, weight="bold"))
+                else:  # Labels normaux
+                    nouvelle_taille = params.get('taille_police_labels', 12)
+                    widget.configure(font=ctk.CTkFont(size=nouvelle_taille, weight="bold"))
+            
+            # Mettre à jour les CTkButton
+            elif isinstance(widget, ctk.CTkButton):
+                nouvelle_taille = params.get('taille_police_boutons', 12)
+                widget.configure(font=ctk.CTkFont(size=nouvelle_taille, weight="bold"))
+            
+            # Mettre à jour les CTkEntry
+            elif isinstance(widget, ctk.CTkEntry):
+                nouvelle_taille = params.get('taille_police_champs', 12)
+                widget.configure(font=ctk.CTkFont(size=nouvelle_taille))
+            
+            # Parcourir récursivement les enfants
+            for child in widget.winfo_children():
+                self.mettre_a_jour_polices_recursive(child, params)
+                
+        except Exception as e:
+            # Ignorer les erreurs pour les widgets qui n'existent plus
+            pass
     
     def ajouter_tooltips_colonnes(self):
         """Ajoute des tooltips aux en-têtes des colonnes"""
@@ -447,7 +796,7 @@ class ReperageTab:
             actions_frame,
             text="🗑️ Supprimer",
             command=self.supprimer_vehicule,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         delete_button.pack(side="left", padx=20, pady=15)
         ajouter_tooltip(delete_button, TOOLTIPS['btn_supprimer'])
@@ -456,7 +805,7 @@ class ReperageTab:
             actions_frame,
             text="🏆 Marquer Acheté",
             command=self.marquer_achete,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         buy_button.pack(side="left", padx=10, pady=15)
         ajouter_tooltip(buy_button, TOOLTIPS['btn_marquer_achete'])
@@ -466,7 +815,7 @@ class ReperageTab:
             actions_frame,
             text="📄 Exporter PDF",
             command=self.exporter_pdf,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         export_pdf_button.pack(side="left", padx=10, pady=15)
         ajouter_tooltip(export_pdf_button, "Exporter les véhicules en repérage vers un document PDF professionnel")
@@ -475,7 +824,7 @@ class ReperageTab:
             actions_frame,
             text="🔄 Actualiser",
             command=self.actualiser,
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=self.get_font_from_settings('boutons')
         )
         refresh_button.pack(side="right", padx=20, pady=15)
         ajouter_tooltip(refresh_button, TOOLTIPS['btn_actualiser'])
@@ -563,13 +912,17 @@ class ReperageTab:
                     vehicule.modele,
                     vehicule.annee,
                     vehicule.kilometrage,
+                    vehicule.motorisation,
                     vehicule.prix_revente,
                     vehicule.cout_reparations,
                     vehicule.temps_reparations,
                     vehicule.chose_a_faire,  # Description des réparations
                     vehicule.prix_max_achat,  # Prix Max calculé avec les paramètres de la journée
                     vehicule.prix_achat,
-                    statut
+                    vehicule.get_ecart_budget_str(),
+                    statut,
+                    vehicule.champ_libre,
+                    vehicule.reserve_professionnels
                 ), tags=tags)
     
     def arreter_auto_refresh(self):
@@ -591,10 +944,14 @@ class ReperageTab:
                 'modele': self.vars_saisie['modele'].get(),
                 'annee': self.vars_saisie['annee'].get(),
                 'kilometrage': self.vars_saisie['kilometrage'].get(),
+                'motorisation': self.vars_saisie['motorisation'].get(),
                 'prix_revente': self.vars_saisie['prix_revente'].get(),
                 'chose_a_faire': self.vars_saisie['chose_a_faire'].get(),
                 'cout_reparations': self.vars_saisie['cout_reparations'].get(),
-                'temps_reparations': self.vars_saisie['temps_reparations'].get()
+                'temps_reparations': self.vars_saisie['temps_reparations'].get(),
+                'champ_libre': self.vars_saisie['champ_libre'].get(),
+                'reserve_professionnels': self.vars_saisie['reserve_professionnels'].get(),
+                'couleur': self.vars_saisie['couleur'].get()
             })
             
             # Calculer automatiquement le prix max avec les paramètres de la journée
@@ -623,8 +980,18 @@ class ReperageTab:
     
     def vider_champs(self):
         """Vide tous les champs de saisie"""
-        for var in self.vars_saisie.values():
-            var.set("")
+        try:
+            for var in self.vars_saisie.values():
+                if isinstance(var, ctk.BooleanVar):
+                    var.set(False)  # Remettre les cases à cocher à False
+                else:
+                    var.set("")  # Vider les champs texte
+            
+            # Remettre la couleur par défaut
+            self.vars_saisie['couleur'].set('turquoise')
+            
+        except Exception as e:
+            messagebox.showerror("❌ Erreur", f"Erreur lors du vidage des champs: {e}")
     
     def supprimer_vehicule(self):
         """Supprime le véhicule sélectionné"""
@@ -682,7 +1049,7 @@ class ReperageTab:
                 messagebox.showerror("❌ Erreur", f"Erreur: {e}")
     
     def actualiser(self):
-        """Met à jour l'affichage du tableau avec recalcul des prix max"""
+        """Met à jour l'affichage du tableau avec tri et nouvelles couleurs"""
         # Effacer le tableau
         for item in self.tree_reperage.get_children():
             self.tree_reperage.delete(item)
@@ -725,11 +1092,13 @@ class ReperageTab:
                 if self.on_data_changed:
                     self.on_data_changed()
         
-        # Remplir avec les véhicules en repérage (qui n'ont pas de prix d'achat)
+        # Remplir avec les véhicules en repérage (filtrés et triés)
         vehicules_reperage = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+        vehicules_reperage = self.appliquer_tri(vehicules_reperage)
+        
         for vehicule in vehicules_reperage:
-            # Seuls les véhicules sans prix d'achat restent ici = bleu
-            tags = ("reperage",)
+            # Utiliser la couleur choisie par l'utilisateur
+            tags = (vehicule.get_tag_couleur(),)
             statut = "Repérage"
             
             self.tree_reperage.insert("", "end", values=(
@@ -738,13 +1107,17 @@ class ReperageTab:
                 vehicule.modele,
                 vehicule.annee,
                 vehicule.kilometrage,
+                vehicule.motorisation,  # NOUVEAU
                 vehicule.prix_revente,
                 vehicule.cout_reparations,
                 vehicule.temps_reparations,
                 vehicule.chose_a_faire,  # Description des réparations
                 vehicule.prix_max_achat,  # Prix Max calculé avec paramètres spécifiques
                 vehicule.prix_achat,
-                statut
+                vehicule.get_ecart_budget_str(),
+                statut,
+                vehicule.champ_libre,  # NOUVEAU
+                "Oui" if vehicule.reserve_professionnels else "Non"  # NOUVEAU
             ), tags=tags)
         
         # Sauvegarder les changements (seulement si pas de recherche)
@@ -845,7 +1218,7 @@ class ReperageTab:
                 
                 # Données du tableau
                 data = [
-                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "KM", "PRIX REVENTE", "PRIX MAX", "COÛT RÉPAR", "TEMPS (h)"]
+                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "KM", "MOTORISATION", "PRIX REV", "COÛT RÉP", "TEMPS (h)", "PRIX MAX"]
                 ]
                 
                 for vehicule in self.data_adapter.vehicules_reperage:
@@ -854,20 +1227,55 @@ class ReperageTab:
                     cout_reparations = vehicule.get_prix_numerique('cout_reparations')
                     temps_reparations = vehicule.get_prix_numerique('temps_reparations')
                     
+                    # Formater les données avec retour à la ligne si nécessaire
+                    def formater_cellule(texte, max_chars=15):
+                        """Formate une cellule en ajoutant des retours à la ligne"""
+                        if not texte or len(str(texte)) <= max_chars:
+                            return str(texte)
+                        
+                        mots = str(texte).split()
+                        lignes = []
+                        ligne_actuelle = ""
+                        
+                        for mot in mots:
+                            if len(ligne_actuelle + " " + mot) <= max_chars:
+                                ligne_actuelle = ligne_actuelle + " " + mot if ligne_actuelle else mot
+                            else:
+                                if ligne_actuelle:
+                                    lignes.append(ligne_actuelle)
+                                ligne_actuelle = mot
+                        
+                        if ligne_actuelle:
+                            lignes.append(ligne_actuelle)
+                        
+                        return "\n".join(lignes)
+                    
                     data.append([
                         vehicule.lot,
-                        vehicule.marque,
-                        vehicule.modele,
+                        formater_cellule(vehicule.marque, 12),
+                        formater_cellule(vehicule.modele, 12),
                         vehicule.annee,
-                        vehicule.kilometrage,
+                        formater_cellule(vehicule.kilometrage, 10),
+                        formater_cellule(vehicule.motorisation, 12),
                         f"{prix_revente:.0f}€" if prix_revente > 0 else "-",
-                        f"{prix_max:.0f}€" if prix_max > 0 else "-",
                         f"{cout_reparations:.0f}€" if cout_reparations > 0 else "-",
-                        f"{temps_reparations:.0f}h" if temps_reparations > 0 else "-"
+                        f"{temps_reparations:.0f}h" if temps_reparations > 0 else "-",
+                        f"{prix_max:.0f}€" if prix_max > 0 else "-"
                     ])
                 
-                # Créer le tableau
-                table = Table(data, colWidths=[0.8*inch, 1.2*inch, 1.2*inch, 0.8*inch, 1*inch, 1*inch, 1*inch, 1*inch, 0.8*inch])
+                # Créer le tableau avec largeurs adaptées
+                table = Table(data, colWidths=[
+                    0.6*inch,  # LOT
+                    0.9*inch,  # MARQUE  
+                    0.9*inch,  # MODÈLE
+                    0.6*inch,  # ANNÉE
+                    0.7*inch,  # KM
+                    0.8*inch,  # MOTORISATION
+                    0.7*inch,  # PRIX REV
+                    0.7*inch,  # COÛT RÉP
+                    0.6*inch,  # TEMPS
+                    0.7*inch   # PRIX MAX
+                ])
                 
                 # Style du tableau
                 table.setStyle(TableStyle([
@@ -876,15 +1284,15 @@ class ReperageTab:
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),  # Police plus petite pour en-têtes
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
                     
                     # Corps du tableau
                     ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                     ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 9),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),  # Police plus petite pour contenu
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Grille plus fine
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alignement vertical en haut
                     
                     # Alternance de couleurs pour les lignes
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')])
@@ -931,7 +1339,7 @@ class ReperageTab:
             messagebox.showerror("❌ Erreur", f"Erreur lors de l'export PDF: {e}")
     
     def on_double_click(self, event):
-        """Démarre l'édition inline sur double-clic (MODIFIÉE : interdiction statut et prix_max)"""
+        """Gestion du double-clic : popup info pour le lot, édition pour les autres colonnes"""
         try:
             # Fermer l'édition précédente si elle existe
             self.finish_edit()
@@ -943,17 +1351,31 @@ class ReperageTab:
             if not item or column == "#0":
                 return
             
-            # Vérifier si la colonne peut être éditée
+            # Vérifier si c'est la colonne du lot (première colonne)
             col_index = int(column.replace('#', '')) - 1
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut"]
+            if col_index == 0:  # Colonne lot
+                # Afficher la popup d'informations
+                index = self.tree_reperage.index(item)
+                vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+                vehicules_tries = self.appliquer_tri(vehicules_affiches)
+                
+                if 0 <= index < len(vehicules_tries):
+                    vehicule = vehicules_tries[index]
+                    afficher_info_vehicule(self.parent.winfo_toplevel(), vehicule)
+                return
+            
+            # Pour les autres colonnes, procéder à l'édition normale
+            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro"]
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
                 
-                # INTERDIRE l'édition des colonnes prix_max et statut
-                if col_name in ["prix_max", "statut"]:
+                # INTERDIRE l'édition des colonnes prix_max, marge et statut
+                if col_name in ["prix_max", "marge", "statut"]:
                     if col_name == "prix_max":
                         messagebox.showinfo("Information", "Le prix maximum est calculé automatiquement selon vos paramètres.\nModifiez le prix de revente, les coûts ou les paramètres pour le changer.")
+                    elif col_name == "marge":
+                        messagebox.showinfo("Information", "L'écart budget est calculé automatiquement (Prix Max - Prix Achat).\nIl indique si vous respectez votre budget prévu.")
                     else:
                         messagebox.showinfo("Information", "Le statut est géré automatiquement.\nUtilisez le bouton 'Marquer Acheté' pour changer le statut.")
                     return
@@ -1007,23 +1429,31 @@ class ReperageTab:
             # Récupérer la nouvelle valeur
             new_value = self.edit_entry.get()
             
-            # Récupérer l'index de la ligne et le véhicule
-            index = self.tree_reperage.index(self.editing_item)
-            vehicule = self.data_adapter.vehicules_reperage[index]
+            # Récupérer l'index de la ligne dans les données triées/filtrées
+            index_affiche = self.tree_reperage.index(self.editing_item)
             
-            # Récupérer le nom de la colonne
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "statut"]
-            col_index = int(self.editing_column.replace('#', '')) - 1
+            # Obtenir les véhicules dans l'ordre affiché (filtré et trié)
+            vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+            vehicules_tries = self.appliquer_tri(vehicules_affiches)
             
-            if 0 <= col_index < len(columns_names):
-                col_name = columns_names[col_index]
+            if 0 <= index_affiche < len(vehicules_tries):
+                vehicule = vehicules_tries[index_affiche]
                 
-                # Mapper description_reparations vers chose_a_faire dans le modèle
-                if col_name == "description_reparations":
-                    setattr(vehicule, "chose_a_faire", new_value)
-                else:
-                    # Mettre à jour le véhicule
-                    setattr(vehicule, col_name, new_value)
+                # Récupérer le nom de la colonne
+                columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro"]
+                col_index = int(self.editing_column.replace('#', '')) - 1
+                
+                if 0 <= col_index < len(columns_names):
+                    col_name = columns_names[col_index]
+                    
+                    # Mapper les noms de colonnes vers les attributs
+                    if col_name == "description_reparations":
+                        setattr(vehicule, "chose_a_faire", new_value)
+                    elif col_name == "reserve_pro":
+                        # Conversion booléenne
+                        setattr(vehicule, "reserve_professionnels", new_value.lower() in ['oui', 'true', '1', 'yes'])
+                    else:
+                        setattr(vehicule, col_name, new_value)
                 
                 # Cas spécial pour prix_achat : arrêter temporairement l'auto-refresh
                 if col_name == "prix_achat" and new_value and new_value.strip() and new_value != "0":

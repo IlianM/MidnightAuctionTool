@@ -10,6 +10,7 @@ from tkinter import messagebox, simpledialog
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 import locale
+import os
 
 from services.journees_manager import JourneesManager
 from utils.tooltips import ajouter_tooltip
@@ -18,13 +19,14 @@ from utils.tooltips import ajouter_tooltip
 class CarteJournee(ctk.CTkFrame):
     """Widget carte pour afficher une base de données d'enchère"""
     
-    def __init__(self, parent, info_journee: Dict[str, Any], on_select: Callable, on_edit: Callable, on_delete: Callable):
+    def __init__(self, parent, info_journee: Dict[str, Any], on_select: Callable, on_edit: Callable, on_delete: Callable, on_export: Callable = None):
         super().__init__(parent)
         
         self.info_journee = info_journee
         self.on_select = on_select
         self.on_edit = on_edit
         self.on_delete = on_delete
+        self.on_export_callback = on_export
         
         self.configure(height=200, width=350, corner_radius=15)
         self.grid_propagate(False)
@@ -89,49 +91,53 @@ class CarteJournee(ctk.CTkFrame):
         ctk.CTkLabel(row2, text=f"📄 {nom_fichier}", 
                     font=ctk.CTkFont(size=9), text_color="gray50").pack(side="right", padx=5)
         
-        # Boutons d'action
-        actions_frame = ctk.CTkFrame(self, height=50)
-        actions_frame.pack(fill="x", padx=10, pady=(5, 10))
-        actions_frame.pack_propagate(False)
+        # Boutons
+        boutons_frame = ctk.CTkFrame(self, fg_color=["#F8F9FA", "#2B2B2B"])
+        boutons_frame.pack(fill="x", pady=(10, 0))
         
-        # Bouton principal - Lancer
-        open_btn = ctk.CTkButton(
-            actions_frame,
-            text="🚀 LANCER",
+        # Bouton Ouvrir
+        ouvrir_btn = ctk.CTkButton(
+            boutons_frame,
+            text="📂 Ouvrir",
             command=lambda: self.on_select(self.info_journee['fichier']),
             font=ctk.CTkFont(size=14, weight="bold"),
+            width=100,
             height=35,
-            width=150
+            fg_color="#2196F3",
+            hover_color="#1976D2"
         )
-        open_btn.pack(side="left", padx=5, pady=7)
+        ouvrir_btn.pack(side="left", padx=5)
         
-        # Boutons secondaires
-        edit_btn = ctk.CTkButton(
-            actions_frame,
-            text="✏️",
-            command=lambda: self.on_edit(self.info_journee['fichier']),
-            font=ctk.CTkFont(size=12),
+        # NOUVEAU : Bouton Export
+        export_btn = ctk.CTkButton(
+            boutons_frame,
+            text="📤",
+            command=lambda: self.on_export(self.info_journee['fichier']),
+            font=ctk.CTkFont(size=12, weight="bold"),
             width=35,
-            height=35
+            height=35,
+            fg_color="#F39C12",
+            hover_color="#E67E22"
         )
-        edit_btn.pack(side="right", padx=2, pady=7)
+        export_btn.pack(side="left", padx=5)
         
-        delete_btn = ctk.CTkButton(
-            actions_frame,
+        # Bouton Supprimer
+        supprimer_btn = ctk.CTkButton(
+            boutons_frame,
             text="🗑️",
             command=lambda: self.on_delete(self.info_journee['fichier']),
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=12, weight="bold"),
             width=35,
             height=35,
-            fg_color="red",
-            hover_color="darkred"
+            fg_color="#F44336",
+            hover_color="#D32F2F"
         )
-        delete_btn.pack(side="right", padx=2, pady=7)
+        supprimer_btn.pack(side="right", padx=5)
         
         # Tooltips
-        ajouter_tooltip(open_btn, f"Lancer l'application avec la base de données '{self.info_journee['nom']}'")
-        ajouter_tooltip(edit_btn, "Modifier les informations de cette base de données")
-        ajouter_tooltip(delete_btn, "Supprimer définitivement cette base de données")
+        ajouter_tooltip(ouvrir_btn, f"Ouvrir la base de données '{self.info_journee['nom']}'")
+        ajouter_tooltip(export_btn, f"Exporter '{self.info_journee['nom']}' vers un fichier JSON")
+        ajouter_tooltip(supprimer_btn, f"Supprimer définitivement '{self.info_journee['nom']}'")
         ajouter_tooltip(titre, f"Base créée le {self.format_date_creation()}")
     
     def format_date(self, date_str: str) -> str:
@@ -158,6 +164,25 @@ class CarteJournee(ctk.CTkFrame):
         if prix == 0:
             return "0€"
         return f"{prix:,.0f}€".replace(',', ' ')
+
+    def on_export(self, nom_fichier):
+        """Callback pour l'export de cette journée"""
+        # Utiliser le callback passé en paramètre si disponible
+        if self.on_export_callback:
+            self.on_export_callback(nom_fichier)
+            return
+        
+        # Trouver le sélecteur principal dans la hiérarchie (fallback)
+        parent = self.master
+        while parent:
+            if hasattr(parent, 'exporter_journee_specifique'):
+                parent.exporter_journee_specifique(nom_fichier)
+                return
+            parent = getattr(parent, 'master', None)
+        
+        # Si on n'arrive pas à trouver la méthode, afficher une erreur
+        from tkinter import messagebox
+        messagebox.showerror("Erreur", "Impossible de trouver la fonction d'export")
 
 
 class DialogJournee:
@@ -469,44 +494,90 @@ class JourneesSelector:
         )
         info_label.pack(pady=(5, 15))
         
-        # Barre d'actions
-        actions_frame = ctk.CTkFrame(self.frame, height=60)
-        actions_frame.pack(fill="x", padx=20, pady=10)
-        actions_frame.pack_propagate(False)
+        # Frame pour les boutons d'action
+        actions_frame = ctk.CTkFrame(self.frame)
+        actions_frame.pack(fill="x", padx=30, pady=20)
         
-        # Bouton nouvelle base
-        new_btn = ctk.CTkButton(
+        # Bouton Nouvelle Base
+        nouvelle_btn = ctk.CTkButton(
             actions_frame,
-            text="➕ NOUVELLE BASE",
+            text="➕ Nouvelle Base",
             command=self.nouvelle_journee,
             font=ctk.CTkFont(size=14, weight="bold"),
+            width=150,
             height=40,
-            width=200
+            fg_color="#4CAF50",
+            hover_color="#45A049"
         )
-        new_btn.pack(side="left", padx=15, pady=10)
+        nouvelle_btn.pack(side="left", padx=(0, 10))
         
-        # Bouton actualiser
-        refresh_btn = ctk.CTkButton(
+        # NOUVEAU : Bouton Import CSV
+        import_csv_btn = ctk.CTkButton(
             actions_frame,
-            text="🔄 Actualiser",
-            command=self.actualiser_affichage,
-            font=ctk.CTkFont(size=12),
+            text="📊 Importer CSV",
+            command=self.importer_csv,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            width=150,
             height=40,
-            width=120
+            fg_color="#FF9800",
+            hover_color="#F57C00"
         )
-        refresh_btn.pack(side="right", padx=15, pady=10)
+        import_csv_btn.pack(side="left", padx=(0, 10))
         
-        # Zone de cartes avec scroll
-        self.scrollable_frame = ctk.CTkScrollableFrame(self.frame, label_text="📋 BASES DE DONNÉES DISPONIBLES")
-        self.scrollable_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # NOUVEAU : Bouton Import PDF
+        import_pdf_btn = ctk.CTkButton(
+            actions_frame,
+            text="📄 Importer PDF",
+            command=self.importer_pdf,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            width=150,
+            height=40,
+            fg_color="#E91E63",
+            hover_color="#C2185B"
+        )
+        import_pdf_btn.pack(side="left", padx=(0, 10))
         
-        # Container pour les cartes
-        self.cartes_container = ctk.CTkFrame(self.scrollable_frame)
-        self.cartes_container.pack(fill="both", expand=True, padx=10, pady=10)
+        # Bouton Import JSON
+        import_btn = ctk.CTkButton(
+            actions_frame,
+            text="📥 Importer JSON",
+            command=self.importer_journee,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            width=150,
+            height=40,
+            fg_color="#2196F3",
+            hover_color="#1976D2"
+        )
+        import_btn.pack(side="left", padx=(0, 10))
+        
+        # Bouton Export Tout
+        export_btn = ctk.CTkButton(
+            actions_frame,
+            text="📤 Exporter Tout",
+            command=self.exporter_toutes_journees,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            width=150,
+            height=40,
+            fg_color="#9C27B0",
+            hover_color="#8E24AA"
+        )
+        export_btn.pack(side="right")
         
         # Tooltips
-        ajouter_tooltip(new_btn, "Créer une nouvelle base de données complètement séparée")
-        ajouter_tooltip(refresh_btn, "Actualiser la liste des bases de données disponibles")
+        ajouter_tooltip(nouvelle_btn, "Créer une nouvelle base de données vide")
+        ajouter_tooltip(import_csv_btn, "Importer des données depuis un fichier CSV exporté de l'ancienne version")
+        ajouter_tooltip(import_pdf_btn, "Importer des données depuis un fichier PDF avec reconnaissance automatique")
+        ajouter_tooltip(import_btn, "Importer une base de données depuis un fichier JSON")
+        ajouter_tooltip(export_btn, "Exporter toutes les bases vers un dossier")
+        
+        # Container scrollable pour les cartes
+        self.cartes_container = ctk.CTkScrollableFrame(self.frame)
+        self.cartes_container.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Configurer le grid du container
+        self.cartes_container.grid_columnconfigure(0, weight=1)
+        self.cartes_container.grid_columnconfigure(1, weight=1)
+        self.cartes_container.grid_columnconfigure(2, weight=1)
     
     def actualiser_affichage(self):
         """Met à jour l'affichage des cartes"""
@@ -546,7 +617,8 @@ class JourneesSelector:
                 info,
                 self.selectionner_journee,
                 self.modifier_journee,
-                self.supprimer_journee
+                self.supprimer_journee,
+                self.exporter_journee_specifique
             )
             
             carte.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
@@ -634,4 +706,184 @@ class JourneesSelector:
         journee = self.journees_manager.charger_journee_fichier(nom_fichier)
         if journee:
             print(f"🚀 Base sélectionnée: {journee.nom} ({nom_fichier})")
-            self.on_journee_selected(journee, self.journees_manager) 
+            self.on_journee_selected(journee, self.journees_manager)
+    
+    def importer_csv(self):
+        """Importe des données depuis un fichier CSV"""
+        from tkinter import filedialog, simpledialog
+        
+        # Sélectionner le fichier CSV
+        fichier = filedialog.askopenfilename(
+            title="Sélectionner un fichier CSV à importer",
+            filetypes=[
+                ("Fichiers CSV", "*.csv"),
+                ("Tous les fichiers", "*.*")
+            ],
+            initialdir=os.path.expanduser("~")
+        )
+        
+        if not fichier:
+            return
+        
+        # Demander le nom de la nouvelle journée
+        nom_journee = simpledialog.askstring(
+            "Nom de la base de données",
+            "Entrez un nom pour la nouvelle base de données :",
+            initialvalue=f"Import CSV - {os.path.basename(fichier).replace('.csv', '')}"
+        )
+        
+        if not nom_journee:
+            return
+        
+        # Créer une fenêtre de progression
+        progress_window = tk.Toplevel(self.frame.winfo_toplevel())
+        progress_window.title("Import en cours...")
+        progress_window.geometry("400x200")
+        progress_window.resizable(False, False)
+        progress_window.transient(self.frame.winfo_toplevel())
+        progress_window.grab_set()
+        
+        # Centrer la fenêtre
+        progress_window.update_idletasks()
+        x = (progress_window.winfo_screenwidth() // 2) - (400 // 2)
+        y = (progress_window.winfo_screenheight() // 2) - (200 // 2)
+        progress_window.geometry(f"400x200+{x}+{y}")
+        
+        # Contenu de la fenêtre de progression
+        progress_frame = tk.Frame(progress_window, bg='white', padx=30, pady=30)
+        progress_frame.pack(fill='both', expand=True)
+        
+        tk.Label(
+            progress_frame,
+            text="📊 Import CSV en cours...",
+            font=('Segoe UI', 16, 'bold'),
+            bg='white',
+            fg='#FF9800'
+        ).pack(pady=(0, 10))
+        
+        progress_label = tk.Label(
+            progress_frame,
+            text="Lecture du fichier CSV...",
+            font=('Segoe UI', 12),
+            bg='white',
+            fg='#333333'
+        )
+        progress_label.pack(pady=(0, 20))
+        
+        # Fonction pour effectuer l'import en arrière-plan
+        def effectuer_import():
+            try:
+                progress_label.config(text="Analyse du fichier CSV...")
+                progress_window.update()
+                
+                succes, message = self.journees_manager.importer_donnees_csv(fichier, nom_journee)
+                
+                progress_window.destroy()
+                
+                if succes:
+                    self.actualiser_affichage()
+                    messagebox.showinfo("✅ Import CSV réussi", message)
+                else:
+                    messagebox.showerror("❌ Erreur d'import CSV", message)
+                    
+            except Exception as e:
+                progress_window.destroy()
+                messagebox.showerror("❌ Erreur", f"Erreur inattendue lors de l'import :\n{e}")
+        
+        # Lancer l'import après un court délai
+        progress_window.after(100, effectuer_import)
+    
+    def importer_pdf(self):
+        """Importe des données depuis un fichier PDF"""
+        from tkinter import filedialog
+        
+        fichier = filedialog.askopenfilename(
+            title="Sélectionner un fichier PDF à importer",
+            filetypes=[
+                ("Fichiers PDF", "*.pdf"),
+                ("Tous les fichiers", "*.*")
+            ],
+            initialdir=os.path.expanduser("~")
+        )
+        
+        if fichier:
+            succes, message = self.journees_manager.importer_donnees_pdf(fichier)
+            
+            if succes:
+                self.actualiser_affichage()
+                messagebox.showinfo("✅ Import PDF réussi", message)
+            else:
+                messagebox.showerror("❌ Erreur d'import PDF", message)
+    
+    def importer_journee(self):
+        """Importe une journée depuis un fichier JSON"""
+        from tkinter import filedialog
+        
+        fichier = filedialog.askopenfilename(
+            title="Sélectionner un fichier JSON à importer",
+            filetypes=[
+                ("Fichiers JSON", "*.json"),
+                ("Tous les fichiers", "*.*")
+            ],
+            initialdir=os.path.expanduser("~")
+        )
+        
+        if fichier:
+            succes, message = self.journees_manager.importer_journee_json(fichier)
+            
+            if succes:
+                self.actualiser_affichage()
+                messagebox.showinfo("✅ Import réussi", message)
+            else:
+                messagebox.showerror("❌ Erreur d'import", message)
+    
+    def exporter_toutes_journees(self):
+        """Exporte toutes les journées vers un dossier"""
+        from tkinter import filedialog
+        
+        dossier = filedialog.askdirectory(
+            title="Sélectionner le dossier de destination pour l'export",
+            initialdir=os.path.expanduser("~")
+        )
+        
+        if dossier:
+            succes, message = self.journees_manager.exporter_toutes_journees_json(dossier)
+            
+            if succes:
+                messagebox.showinfo("✅ Export réussi", message)
+            else:
+                messagebox.showerror("❌ Erreur d'export", message)
+    
+    def exporter_journee_specifique(self, nom_fichier: str):
+        """Exporte une journée spécifique"""
+        from tkinter import filedialog
+        
+        # Récupérer les infos de la journée pour le nom par défaut
+        journees = self.journees_manager.get_journees_disponibles()
+        journee_info = next((j for j in journees if j['fichier'] == nom_fichier), None)
+        
+        if not journee_info:
+            messagebox.showerror("Erreur", "Journée non trouvée")
+            return
+        
+        # Nom par défaut
+        nom_defaut = f"{journee_info['nom'].replace(' ', '_')}_export.json"
+        
+        fichier = filedialog.asksaveasfilename(
+            title="Exporter la journée vers...",
+            defaultextension=".json",
+            filetypes=[
+                ("Fichiers JSON", "*.json"),
+                ("Tous les fichiers", "*.*")
+            ],
+            initialdir=os.path.expanduser("~"),
+            initialfile=nom_defaut
+        )
+        
+        if fichier:
+            succes, message = self.journees_manager.exporter_journee_json(nom_fichier, fichier)
+            
+            if succes:
+                messagebox.showinfo("✅ Export réussi", message)
+            else:
+                messagebox.showerror("❌ Erreur d'export", message) 

@@ -184,37 +184,51 @@ class AchetesTab:
         container.configure(height=250)  # Hauteur minimale de 250px
         
         # Treeview (tableau) avec description et prix de revente vide pour véhicules fraîchement achetés
-        columns = ("lot", "marque", "modele", "annee", "prix_achat", "prix_revente", "description_reparations", "marge", "date_achat")
-        self.tree_achetes = ttk.Treeview(container, columns=columns, show="headings", height=8)  # Hauteur optimisée
+        columns = ("lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat")
+        self.tree_achetes = ttk.Treeview(container, columns=columns, show="headings", height=10)
         
-        # Configuration du style pour agrandir la police
-        style = ttk.Style()
-        style.configure("Treeview", font=('Segoe UI', 20), rowheight=50)  # Police normale pour cohérence
-        style.configure("Treeview.Heading", font=('Segoe UI', 16, 'bold'))  # Police plus petite pour les en-têtes
+        # Configuration du style
+        self.configurer_style_tableau()
+        
+        # Variables pour le tri
+        self.tri_actuel = {'colonne': None, 'sens': 'asc'}  # 'asc' ou 'desc'
         
         # Configuration des colonnes
         headings = {
-            "lot": "LOT",
-            "marque": "MARQUE", 
-            "modele": "MODÈLE",
-            "annee": "ANNÉE",
-            "prix_achat": "PRIX ACHAT",
-            "prix_revente": "PRIX REVENTE",
-            "description_reparations": "DESCRIPTION RÉPAR",  # NOUVEAU
-            "marge": "MARGE",
-            "date_achat": "DATE ACHAT"
+            "lot": "LOT ↕",
+            "marque": "MARQUE ↕",
+            "modele": "MODÈLE ↕",
+            "annee": "ANNÉE ↕",
+            "prix_achat": "PRIX ACHAT ↕",
+            "prix_max": "PRIX MAX ↕",
+            "prix_vente_final": "PRIX VENTE ↕",
+            "marge_euro": "MARGE €",
+            "marge_pourcent": "MARGE %",
+            "date_achat": "DATE ACHAT ↕"
         }
         
         for col, heading in headings.items():
             self.tree_achetes.heading(col, text=heading)
-            if col in ["prix_achat", "prix_revente", "marge"]:
-                self.tree_achetes.column(col, width=100, anchor="center")
-            elif col in ["lot", "annee"]:
+            
+            # Ajouter le callback de tri pour les colonnes avec ↕
+            if "↕" in heading:
+                self.tree_achetes.heading(col, command=lambda c=col: self.trier_par_colonne(c))
+            
+            # Largeurs des colonnes
+            if col == "lot":
                 self.tree_achetes.column(col, width=80, anchor="center")
-            elif col == "description_reparations":
-                self.tree_achetes.column(col, width=200, anchor="w")  # Plus large pour la description
-            else:
+            elif col in ["marque", "modele"]:
                 self.tree_achetes.column(col, width=120, anchor="w")
+            elif col == "annee":
+                self.tree_achetes.column(col, width=80, anchor="center")
+            elif col in ["prix_achat", "prix_max", "prix_vente_final"]:
+                self.tree_achetes.column(col, width=110, anchor="center")
+            elif col in ["marge_euro", "marge_pourcent"]:
+                self.tree_achetes.column(col, width=100, anchor="center")
+            elif col == "date_achat":
+                self.tree_achetes.column(col, width=100, anchor="center")
+            else:
+                self.tree_achetes.column(col, width=100, anchor="center")
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree_achetes.yview)
@@ -231,7 +245,18 @@ class AchetesTab:
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
         
-        # Bind pour édition au double-clic
+        # Configuration des tags de couleur (MODIFIÉS pour nouvelles couleurs utilisateur)
+        self.tree_achetes.tag_configure('couleur_turquoise', background='#1ABC9C', foreground='white')
+        self.tree_achetes.tag_configure('couleur_vert', background='#2ECC71', foreground='white')
+        self.tree_achetes.tag_configure('couleur_orange', background='#F39C12', foreground='white')
+        self.tree_achetes.tag_configure('couleur_rouge', background='#E74C3C', foreground='white')
+        
+        # Tags pour la rentabilité (garde certains pour les besoins spéciaux)
+        self.tree_achetes.tag_configure('en_attente', background='#F39C12', foreground='white')  # Orange pour en attente
+        self.tree_achetes.tag_configure('rentable', background='#2ECC71', foreground='white')    # Vert pour rentable
+        self.tree_achetes.tag_configure('non_rentable', background='#E74C3C', foreground='white')  # Rouge pour perte
+        
+        # Bind pour édition au double-clic (MODIFIÉ pour popup sur lot)
         self.tree_achetes.bind("<Double-1>", self.on_double_click)
         
         # Variables d'édition inline
@@ -241,10 +266,10 @@ class AchetesTab:
         
         # Ajouter tooltip au tableau
         ajouter_tooltip(self.tree_achetes, """Tableau des véhicules achetés avec indication de rentabilité :
-• Fond ORANGE = véhicule acheté, en attente de vente
-• Fond VERT = achat rentable (marge positive)
-• Fond ROUGE = achat à perte (marge négative)
-• Double-clic pour modifier les cellules (sauf marge qui est automatique)""")
+• Couleur selon choix utilisateur + indication de rentabilité
+• Double-clic sur LOT pour voir les détails complets
+• Double-clic sur autre colonne pour modifier
+• Marge calculée automatiquement""")
     
     def demarrer_auto_refresh(self):
         """Démarre l'actualisation automatique périodique"""
@@ -302,36 +327,30 @@ class AchetesTab:
             for item in self.tree_achetes.get_children():
                 self.tree_achetes.delete(item)
         
-        # Remplir avec les véhicules achetés
+        # Remplir avec les véhicules achetés filtrés
         vehicules_achetes = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
-        total_marge = 0
-        total_investissement = 0
+        vehicules_achetes = self.appliquer_tri(vehicules_achetes)
         
         for vehicule in vehicules_achetes:
-            prix_achat = vehicule.get_prix_numerique('prix_achat')
-            prix_revente = vehicule.get_prix_numerique('prix_revente')
-            cout_reparations = vehicule.get_prix_numerique('cout_reparations')
+            # Calculer la marge RÉELLE (seulement si prix vente final renseigné)
+            marge_euros = vehicule.calculer_marge()
+            marge_pourcentage = vehicule.calculer_marge_pourcentage()
             
-            # Vérifier si le véhicule a un prix de revente renseigné
-            prix_revente_renseigne = vehicule.prix_revente and vehicule.prix_revente.strip() and vehicule.prix_revente != "0"
-            
-            if not prix_revente_renseigne:  # Véhicule acheté mais pas encore vendu
-                marge_affichage = "En attente"
-                tags = ("en_attente",)
-                marge = 0  # Pour les stats
-                prix_revente_affichage = ""  # Vide dans le tableau
+            # Formatage des marges
+            if vehicule.get_prix_numerique('prix_vente_final') > 0:
+                # Véhicule vendu - vraie marge
+                marge_euro_str = f"{marge_euros:+.0f}€"
+                marge_pourcent_str = f"{marge_pourcentage:+.1f}%"
+                tag_rentabilite = "rentable" if marge_euros >= 0 else "non_rentable"
             else:
-                # Véhicule vendu, calcul de la marge réelle
-                cout_total = prix_achat + cout_reparations
-                marge = prix_revente - cout_total
-                marge_affichage = f"{marge:+.0f}€"
-                prix_revente_affichage = f"{prix_revente:.0f}€"
-                
-                # Couleur selon la rentabilité
-                if marge >= 0:
-                    tags = ("rentable",)    # Vert - rentable
-                else:
-                    tags = ("non_rentable",)  # Rouge - à perte
+                # Véhicule pas encore vendu
+                marge_euro_str = "En attente"
+                marge_pourcent_str = "En attente"
+                tag_rentabilite = "en_attente"
+            
+            # Utiliser la couleur choisie par l'utilisateur avec indication de rentabilité
+            tag_couleur = vehicule.get_tag_couleur()
+            tags = (tag_couleur, tag_rentabilite)
             
             if self.tree_achetes and self.tree_achetes.winfo_exists():
                 self.tree_achetes.insert("", "end", values=(
@@ -339,97 +358,78 @@ class AchetesTab:
                     vehicule.marque,
                     vehicule.modele,
                     vehicule.annee,
-                    f"{prix_achat:.0f}€",
-                    prix_revente_affichage,  # Vide si pas vendu
-                    vehicule.chose_a_faire,  # Description des réparations
-                    marge_affichage,
-                    vehicule.date_achat if vehicule.date_achat else "N/A"
+                    f"{vehicule.prix_achat}€" if vehicule.prix_achat else "0€",
+                    vehicule.prix_max_achat or "N/A",
+                    f"{vehicule.prix_vente_final}€" if vehicule.prix_vente_final else "",
+                    marge_euro_str,
+                    marge_pourcent_str,
+                    vehicule.date_achat
                 ), tags=tags)
-            
-            total_marge += marge
-            total_investissement += prix_achat
         
-        # Configuration des couleurs
-        if self.tree_achetes and self.tree_achetes.winfo_exists():
-            self.tree_achetes.tag_configure("rentable", background="#4CAF50", foreground="white")
-            self.tree_achetes.tag_configure("non_rentable", background="#F44336", foreground="white")
-            self.tree_achetes.tag_configure("en_attente", background="#FF9800", foreground="white")  # Orange pour en attente
-        
-        # Mise à jour des statistiques
-        nb_achetes = len(vehicules_achetes)
-        marge_moyenne = total_marge / nb_achetes if nb_achetes > 0 else 0
-        
-        stats_text = f"💰 {nb_achetes} véhicules achetés | Marge totale: {total_marge:+.0f}€ | Marge moyenne: {marge_moyenne:+.0f}€ | Investissement: {total_investissement:.0f}€"
-        if hasattr(self, 'label_stats') and self.label_stats.winfo_exists():
-            self.label_stats.configure(text=stats_text)
+        # Mettre à jour les statistiques
+        self.mettre_a_jour_stats()
     
     def arreter_auto_refresh(self):
         """Arrête l'actualisation automatique"""
         self.auto_refresh_enabled = False
 
     def actualiser(self):
-        """Met à jour l'affichage des véhicules achetés"""
+        """Met à jour l'affichage du tableau"""
         # Effacer le tableau
         for item in self.tree_achetes.get_children():
             self.tree_achetes.delete(item)
         
-        # Remplir avec les véhicules achetés
+        # Remplir avec les véhicules achetés filtrés
         vehicules_achetes = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
-        total_marge = 0
-        total_investissement = 0
+        vehicules_achetes = self.appliquer_tri(vehicules_achetes)
         
         for vehicule in vehicules_achetes:
-            prix_achat = vehicule.get_prix_numerique('prix_achat')
-            prix_revente = vehicule.get_prix_numerique('prix_revente')
-            cout_reparations = vehicule.get_prix_numerique('cout_reparations')
+            # Calculer la marge RÉELLE (seulement si prix vente final renseigné)
+            marge_euros = vehicule.calculer_marge()
+            marge_pourcentage = vehicule.calculer_marge_pourcentage()
             
-            # Vérifier si le véhicule a un prix de revente renseigné
-            prix_revente_renseigne = vehicule.prix_revente and vehicule.prix_revente.strip() and vehicule.prix_revente != "0"
-            
-            if not prix_revente_renseigne:  # Véhicule acheté mais pas encore vendu
-                marge_affichage = "En attente"
-                tags = ("en_attente",)
-                marge = 0  # Pour les stats
-                prix_revente_affichage = ""  # Vide dans le tableau
+            # Formatage des marges
+            if vehicule.get_prix_numerique('prix_vente_final') > 0:
+                # Véhicule vendu - vraie marge
+                marge_euro_str = f"{marge_euros:+.0f}€"
+                marge_pourcent_str = f"{marge_pourcentage:+.1f}%"
+                tag_rentabilite = "rentable" if marge_euros >= 0 else "non_rentable"
             else:
-                # Véhicule vendu, calcul de la marge réelle
-                cout_total = prix_achat + cout_reparations
-                marge = prix_revente - cout_total
-                marge_affichage = f"{marge:+.0f}€"
-                prix_revente_affichage = f"{prix_revente:.0f}€"
-                
-                # Couleur selon la rentabilité
-                if marge >= 0:
-                    tags = ("rentable",)    # Vert - rentable
-                else:
-                    tags = ("non_rentable",)  # Rouge - à perte
+                # Véhicule pas encore vendu
+                marge_euro_str = "En attente"
+                marge_pourcent_str = "En attente"
+                tag_rentabilite = "en_attente"
+            
+            # Utiliser la couleur choisie par l'utilisateur avec indication de rentabilité
+            tag_couleur = vehicule.get_tag_couleur()
+            tags = (tag_couleur, tag_rentabilite)
             
             self.tree_achetes.insert("", "end", values=(
                 vehicule.lot,
                 vehicule.marque,
                 vehicule.modele,
                 vehicule.annee,
-                f"{prix_achat:.0f}€",
-                prix_revente_affichage,  # Vide si pas vendu
-                vehicule.chose_a_faire,  # Description des réparations
-                marge_affichage,
-                vehicule.date_achat if vehicule.date_achat else "N/A"
+                f"{vehicule.prix_achat}€" if vehicule.prix_achat else "0€",
+                vehicule.prix_max_achat or "N/A",
+                f"{vehicule.prix_vente_final}€" if vehicule.prix_vente_final else "",
+                marge_euro_str,
+                marge_pourcent_str,
+                vehicule.date_achat
             ), tags=tags)
-            
-            total_marge += marge
-            total_investissement += prix_achat
         
-        # Configuration des couleurs (même logique que repérage)
-        self.tree_achetes.tag_configure("rentable", background="#4CAF50", foreground="white")    # Vert avec texte blanc
-        self.tree_achetes.tag_configure("non_rentable", background="#F44336", foreground="white") # Rouge avec texte blanc
+        # Configuration des couleurs pour les tags de couleurs utilisateur
+        self.tree_achetes.tag_configure('couleur_turquoise', background='#1ABC9C', foreground='white')
+        self.tree_achetes.tag_configure('couleur_vert', background='#2ECC71', foreground='white')
+        self.tree_achetes.tag_configure('couleur_orange', background='#F39C12', foreground='white')
+        self.tree_achetes.tag_configure('couleur_rouge', background='#E74C3C', foreground='white')
+        
+        # Surcharge pour indication de rentabilité (priorité sur couleur utilisateur)
+        self.tree_achetes.tag_configure("rentable", background="#4CAF50", foreground="white")    # Vert pour rentable
+        self.tree_achetes.tag_configure("non_rentable", background="#F44336", foreground="white") # Rouge pour perte
         self.tree_achetes.tag_configure("en_attente", background="#FF9800", foreground="white")  # Orange pour en attente
         
-        # Mise à jour des statistiques
-        nb_achetes = len(vehicules_achetes)
-        marge_moyenne = total_marge / nb_achetes if nb_achetes > 0 else 0
-        
-        stats_text = f"💰 {nb_achetes} véhicules achetés | Marge totale: {total_marge:+.0f}€ | Marge moyenne: {marge_moyenne:+.0f}€ | Investissement: {total_investissement:.0f}€"
-        self.label_stats.configure(text=stats_text)
+        # Mettre à jour les statistiques
+        self.mettre_a_jour_stats()
         
         # Mettre à jour le hash pour l'auto-refresh
         self.last_data_hash = self.calculer_hash_donnees()
@@ -450,22 +450,27 @@ class AchetesTab:
                     # En-têtes
                     writer.writerow([
                         "N° LOT", "MARQUE", "MODÈLE", "ANNÉE", "PRIX ACHAT", 
-                        "PRIX REVENTE", "DESCRIPTION RÉPARATIONS", "MARGE", "DATE ACHAT", "KM"
+                        "PRIX MAX", "PRIX VENTE", "MARGE €", "MARGE %", "DATE ACHAT", "KM", "MOTORISATION"
                     ])
                     
                     # Données
                     for vehicule in self.data_adapter.vehicules_achetes:
+                        marge_euros = vehicule.calculer_marge()
+                        marge_pourcentage = vehicule.calculer_marge_pourcentage()
+                        
                         writer.writerow([
                             vehicule.lot,
                             vehicule.marque,
                             vehicule.modele,
                             vehicule.annee,
                             vehicule.prix_achat,
-                            "",  # Prix de revente vide
-                            vehicule.chose_a_faire,  # Description des réparations
-                            f"{vehicule.calculer_marge():.0f}",
+                            vehicule.prix_max_achat,
+                            vehicule.prix_revente,
+                            f"{marge_euros:+.0f}",
+                            f"{marge_pourcentage:+.1f}",
                             vehicule.date_achat if vehicule.date_achat else "",
-                            vehicule.kilometrage
+                            vehicule.kilometrage,
+                            vehicule.motorisation
                         ])
                 
                 messagebox.showinfo("✅ Succès", f"Export réussi vers:\n{filename}")
@@ -561,13 +566,36 @@ class AchetesTab:
                 
                 # Données du tableau
                 data = [
-                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "PRIX ACHAT", "PRIX REVENTE", "MARGE", "DATE ACHAT"]
+                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "PRIX ACHAT", "PRIX VENTE", "MARGE", "DATE"]
                 ]
                 
                 for vehicule in self.data_adapter.vehicules_achetes:
                     prix_achat = vehicule.get_prix_numerique('prix_achat')
                     prix_revente = vehicule.get_prix_numerique('prix_revente')
                     cout_reparations = vehicule.get_prix_numerique('cout_reparations')
+                    
+                    # Fonction pour formater avec retour à la ligne
+                    def formater_cellule(texte, max_chars=12):
+                        """Formate une cellule en ajoutant des retours à la ligne"""
+                        if not texte or len(str(texte)) <= max_chars:
+                            return str(texte)
+                        
+                        mots = str(texte).split()
+                        lignes = []
+                        ligne_actuelle = ""
+                        
+                        for mot in mots:
+                            if len(ligne_actuelle + " " + mot) <= max_chars:
+                                ligne_actuelle = ligne_actuelle + " " + mot if ligne_actuelle else mot
+                            else:
+                                if ligne_actuelle:
+                                    lignes.append(ligne_actuelle)
+                                ligne_actuelle = mot
+                        
+                        if ligne_actuelle:
+                            lignes.append(ligne_actuelle)
+                        
+                        return "\n".join(lignes)
                     
                     # Calcul de la marge
                     if prix_revente > 0:
@@ -578,19 +606,33 @@ class AchetesTab:
                         marge_str = "En attente"
                         prix_revente_str = "-"
                     
+                    # Formater la date
+                    date_formatee = vehicule.date_achat if vehicule.date_achat else "N/A"
+                    if len(date_formatee) > 8:
+                        date_formatee = date_formatee[:8] + "..."
+                    
                     data.append([
                         vehicule.lot,
-                        vehicule.marque,
-                        vehicule.modele,
+                        formater_cellule(vehicule.marque, 10),
+                        formater_cellule(vehicule.modele, 10),
                         vehicule.annee,
                         f"{prix_achat:.0f}€",
                         prix_revente_str,
                         marge_str,
-                        vehicule.date_achat if vehicule.date_achat else "N/A"
+                        date_formatee
                     ])
                 
-                # Créer le tableau
-                table = Table(data, colWidths=[0.8*inch, 1.2*inch, 1.2*inch, 0.8*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+                # Créer le tableau avec largeurs adaptées
+                table = Table(data, colWidths=[
+                    0.6*inch,  # LOT
+                    0.9*inch,  # MARQUE  
+                    0.9*inch,  # MODÈLE
+                    0.6*inch,  # ANNÉE
+                    0.8*inch,  # PRIX ACHAT
+                    0.8*inch,  # PRIX VENTE
+                    0.8*inch,  # MARGE
+                    0.7*inch   # DATE
+                ])
                 
                 # Style du tableau
                 table.setStyle(TableStyle([
@@ -599,15 +641,15 @@ class AchetesTab:
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),  # Police plus petite pour en-têtes
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
                     
                     # Corps du tableau
                     ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                     ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 9),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),  # Police plus petite pour contenu
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Grille plus fine
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alignement vertical en haut
                     
                     # Alternance de couleurs pour les lignes
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')])
@@ -660,7 +702,7 @@ class AchetesTab:
         return vehicules_filtres 
 
     def on_double_click(self, event):
-        """Démarre l'édition inline sur double-clic"""
+        """Gestion du double-clic : popup info pour le lot, édition pour les autres colonnes"""
         try:
             # Fermer l'édition précédente si elle existe
             self.finish_edit()
@@ -672,19 +714,28 @@ class AchetesTab:
             if not item or column == "#0":
                 return
             
-            # Vérifier si la colonne peut être éditée
+            # Vérifier si c'est la colonne du lot (première colonne)
             col_index = int(column.replace('#', '')) - 1
-            columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_revente", "description_reparations", "marge", "date_achat"]
+            if col_index == 0:  # Colonne lot
+                # Afficher la popup d'informations
+                index = self.tree_achetes.index(item)
+                vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
+                
+                if 0 <= index < len(vehicules_affiches):
+                    vehicule = vehicules_affiches[index]
+                    from utils.dialogs import afficher_info_vehicule
+                    afficher_info_vehicule(self.parent.winfo_toplevel(), vehicule)
+                return
+            
+            # Pour les autres colonnes, procéder à l'édition normale
+            columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat"]
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
                 
-                # INTERDIRE l'édition des colonnes marge et date_achat
-                if col_name in ["marge", "date_achat"]:
-                    if col_name == "marge":
-                        messagebox.showinfo("Information", "La marge est calculée automatiquement.\nModifiez le prix de revente pour la changer.")
-                    else:
-                        messagebox.showinfo("Information", "La date d'achat est gérée automatiquement.")
+                # INTERDIRE l'édition des colonnes marge (calculées automatiquement)
+                if col_name in ["marge_euro", "marge_pourcent"]:
+                    messagebox.showinfo("Information", "La marge est calculée automatiquement.\nModifiez le prix d'achat, prix de vente final ou coût des réparations pour la changer.")
                     return
             
             # Récupérer les coordonnées de la cellule
@@ -700,8 +751,8 @@ class AchetesTab:
             values = self.tree_achetes.item(item)['values']
             current_value = values[col_index] if col_index < len(values) else ""
             
-            # Créer le widget d'édition avec police normale
-            self.edit_entry = tk.Entry(self.tree_achetes, font=('Segoe UI', 14))
+            # Créer le widget d'édition
+            self.edit_entry = tk.Entry(self.tree_achetes, font=('Segoe UI', 20))
             self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
             self.edit_entry.insert(0, str(current_value))
             self.edit_entry.select_range(0, tk.END)
@@ -738,30 +789,34 @@ class AchetesTab:
             
             # Récupérer l'index de la ligne et le véhicule
             index = self.tree_achetes.index(self.editing_item)
-            vehicule = self.data_adapter.vehicules_achetes[index]
+            vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
+            vehicules_tries = self.appliquer_tri(vehicules_affiches)
             
-            # Récupérer le nom de la colonne
-            columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_revente", "description_reparations", "marge", "date_achat"]
-            col_index = int(self.editing_column.replace('#', '')) - 1
+            if 0 <= index < len(vehicules_tries):
+                vehicule = vehicules_tries[index]
             
-            if 0 <= col_index < len(columns_names):
-                col_name = columns_names[col_index]
+                # Récupérer le nom de la colonne
+                columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat"]
+                col_index = int(self.editing_column.replace('#', '')) - 1
                 
-                # Mapper description_reparations vers chose_a_faire dans le modèle
-                if col_name == "description_reparations":
-                    setattr(vehicule, "chose_a_faire", new_value)
-                else:
-                    # Mettre à jour le véhicule
-                    setattr(vehicule, col_name, new_value)
-                
-                # Sauvegarder
-                self.data_adapter.sauvegarder_donnees()
-                
-                # Actualiser l'affichage
-                self.actualiser()
-                
-                if self.on_data_changed:
-                    self.on_data_changed()
+                if 0 <= col_index < len(columns_names):
+                    col_name = columns_names[col_index]
+                    
+                    # Mapper les noms de colonnes vers les attributs
+                    if col_name == "prix_max":
+                        setattr(vehicule, "prix_max_achat", new_value)
+                    else:
+                        # Mettre à jour le véhicule directement
+                        setattr(vehicule, col_name, new_value)
+                    
+                    # Sauvegarder
+                    self.data_adapter.sauvegarder_donnees()
+                    
+                    # Actualiser l'affichage
+                    self.actualiser()
+                    
+                    if self.on_data_changed:
+                        self.on_data_changed()
                 
         except Exception as e:
             messagebox.showerror("❌ Erreur", f"Erreur lors de la sauvegarde: {e}")
@@ -774,4 +829,114 @@ class AchetesTab:
             self.edit_entry.destroy()
             self.edit_entry = None
         self.editing_item = None
-        self.editing_column = None 
+        self.editing_column = None
+
+    def mettre_a_jour_stats(self):
+        """Met à jour les statistiques affichées"""
+        try:
+            vehicules_achetes = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
+            nb_achetes = len(vehicules_achetes)
+            marge_moyenne = self.calculer_marge_moyenne(vehicules_achetes)
+            
+            stats_text = f"💰 {nb_achetes} véhicules achetés | Marge totale: {self.calculer_marge_totale(vehicules_achetes):+.0f}€ | Marge moyenne: {marge_moyenne:+.0f}€ | Investissement: {self.calculer_investissement_total(vehicules_achetes):.0f}€"
+            if hasattr(self, 'label_stats') and self.label_stats.winfo_exists():
+                self.label_stats.configure(text=stats_text)
+        except Exception as e:
+            print(f"⚠️ Erreur mise à jour stats: {e}")
+    
+    def calculer_marge_totale(self, vehicules):
+        """Calcule la marge totale des véhicules achetés"""
+        return sum(v.calculer_marge() for v in vehicules)
+    
+    def calculer_marge_moyenne(self, vehicules):
+        """Calcule la marge moyenne des véhicules achetés"""
+        if not vehicules:
+            return 0.0
+        return self.calculer_marge_totale(vehicules) / len(vehicules)
+    
+    def calculer_investissement_total(self, vehicules):
+        """Calcule l'investissement total des véhicules achetés"""
+        return sum(v.get_prix_numerique('prix_achat') for v in vehicules)
+    
+    def configurer_style_tableau(self):
+        """Configure le style du tableau selon les paramètres de la journée"""
+        style = ttk.Style()
+        
+        # Récupérer les tailles depuis les paramètres de la journée
+        taille_contenu = self.get_param_from_journee('taille_police_tableau', 14)
+        taille_entetes = self.get_param_from_journee('taille_police_entetes', 16) 
+        hauteur_lignes = self.get_param_from_journee('hauteur_lignes_tableau', 30)
+        
+        # Configurer les styles
+        style.configure("Treeview", 
+                       font=('Segoe UI', taille_contenu), 
+                       rowheight=hauteur_lignes)
+        style.configure("Treeview.Heading", 
+                       font=('Segoe UI', taille_entetes, 'bold'))
+    
+    def get_param_from_journee(self, param_name, default_value):
+        """Récupère un paramètre depuis la journée ou fallback vers les settings puis valeur par défaut"""
+        if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+            return self.data_adapter.journee.parametres.get(param_name, default_value)
+        return self.settings.parametres.get(param_name, default_value)
+
+    def trier_par_colonne(self, colonne):
+        """Trie le tableau par la colonne sélectionnée"""
+        # Déterminer le sens du tri
+        if self.tri_actuel['colonne'] == colonne:
+            # Inverser le sens si on clique sur la même colonne
+            self.tri_actuel['sens'] = 'desc' if self.tri_actuel['sens'] == 'asc' else 'asc'
+        else:
+            # Nouveau tri par défaut en ascendant
+            self.tri_actuel['colonne'] = colonne
+            self.tri_actuel['sens'] = 'asc'
+        
+        # Actualiser l'affichage avec le tri
+        self.actualiser()
+    
+    def appliquer_tri(self, vehicules):
+        """Applique le tri sur la liste de véhicules"""
+        if not self.tri_actuel['colonne']:
+            return vehicules
+        
+        colonne = self.tri_actuel['colonne']
+        sens_inverse = self.tri_actuel['sens'] == 'desc'
+        
+        # Mapper les noms de colonnes vers les attributs du véhicule
+        attribut_map = {
+            'lot': 'lot',
+            'marque': 'marque',
+            'modele': 'modele',
+            'annee': 'annee',
+            'prix_achat': 'prix_achat',
+            'prix_max': 'prix_max_achat',
+            'prix_vente_final': 'prix_vente_final',
+            'date_achat': 'date_achat'
+        }
+        
+        attribut = attribut_map.get(colonne)
+        if not attribut:
+            return vehicules
+        
+        def get_sort_key(vehicule):
+            """Fonction pour récupérer la clé de tri"""
+            valeur = getattr(vehicule, attribut, '')
+            
+            # Traitement spécial selon le type de donnée
+            if colonne in ['prix_achat', 'prix_max', 'prix_vente_final']:
+                # Valeurs numériques
+                try:
+                    return float(str(valeur).replace('€', '').replace(',', '.').strip()) if valeur else 0
+                except:
+                    return 0
+            elif colonne == 'annee':
+                # Années
+                try:
+                    return int(str(valeur)) if valeur else 0
+                except:
+                    return 0
+            else:
+                # Texte (insensible à la casse)
+                return str(valeur).lower() if valeur else ''
+        
+        return sorted(vehicules, key=get_sort_key, reverse=sens_inverse) 

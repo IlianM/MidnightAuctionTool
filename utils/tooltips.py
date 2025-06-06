@@ -179,6 +179,16 @@ TOOLTIPS = {
     'param_marge_securite': "Marge de sécurité à déduire du calcul pour les imprévus (€).",
     'param_mode_sombre': "Active/désactive le mode sombre de l'interface.",
     
+    # NOUVEAUX PARAMÈTRES D'INTERFACE
+    'param_hauteur_lignes_tableau': "Hauteur des lignes dans les tableaux en pixels (recommandé: 25-40).",
+    'param_taille_police_tableau': "Taille de la police du contenu des tableaux (recommandé: 12-18).",
+    'param_taille_police_entetes': "Taille de la police des en-têtes de colonnes (recommandé: 14-20).",
+    'param_taille_police_titres': "Taille de la police des titres principaux (recommandé: 18-24).",
+    'param_taille_police_boutons': "Taille de la police des boutons (recommandé: 10-16).",
+    'param_taille_police_labels': "Taille de la police des étiquettes (recommandé: 10-16).",
+    'param_taille_police_champs': "Taille de la police des champs de saisie (recommandé: 10-16).",
+    'param_largeur_colonnes_auto': "Ajuste automatiquement la largeur des colonnes selon le contenu.",
+    
     # Boutons paramètres
     'btn_sauvegarder_param': "Sauvegarde les paramètres dans le fichier de configuration.",
     'btn_reinitialiser_param': "Remet tous les paramètres aux valeurs par défaut.",
