@@ -19,7 +19,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
 from config.settings import AppSettings
-from utils.tooltips import ajouter_tooltip, TOOLTIPS
+from utils.tooltips import ajouter_tooltip, TOOLTIPS, set_tooltip_font_size, ajouter_tooltips_colonnes_tableau
 from utils.dialogs import demander_prix_achat, afficher_info_vehicule
 from models.vehicule import Vehicule
 
@@ -40,6 +40,7 @@ class ReperageTab:
         self.edit_entry = None  # Widget d'édition temporaire
         self.editing_item = None
         self.editing_column = None
+        self.column_tooltips = None  # NOUVEAU : Gestionnaire de tooltips contextuels
         
         # Variables pour le tri
         self.tri_actuel = {'colonne': None, 'sens': 'asc'}  # 'asc' ou 'desc'
@@ -377,6 +378,70 @@ class ReperageTab:
         )
         clear_button.pack(side="left", padx=10, pady=10)
         ajouter_tooltip(clear_button, TOOLTIPS['btn_vider'])
+        
+        # NOUVEAU : Boutons de couleur
+        color_label = ctk.CTkLabel(
+            buttons_frame,
+            text="🎨 COULEURS:",
+            font=self.get_font_from_settings('labels')
+        )
+        color_label.pack(side="left", padx=(30, 5), pady=10)
+        
+        # Bouton turquoise
+        btn_turquoise = ctk.CTkButton(
+            buttons_frame,
+            text="🟢",
+            command=lambda: self.changer_couleur_selection("turquoise"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#1ABC9C",
+            hover_color="#16A085"
+        )
+        btn_turquoise.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_turquoise, "Changer la couleur du véhicule sélectionné en turquoise")
+        
+        # Bouton vert
+        btn_vert = ctk.CTkButton(
+            buttons_frame,
+            text="🟢",
+            command=lambda: self.changer_couleur_selection("vert"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#2ECC71",
+            hover_color="#27AE60"
+        )
+        btn_vert.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_vert, "Changer la couleur du véhicule sélectionné en vert")
+        
+        # Bouton orange
+        btn_orange = ctk.CTkButton(
+            buttons_frame,
+            text="🟠",
+            command=lambda: self.changer_couleur_selection("orange"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#F39C12",
+            hover_color="#E67E22"
+        )
+        btn_orange.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_orange, "Changer la couleur du véhicule sélectionné en orange")
+        
+        # Bouton rouge
+        btn_rouge = ctk.CTkButton(
+            buttons_frame,
+            text="🔴",
+            command=lambda: self.changer_couleur_selection("rouge"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#E74C3C",
+            hover_color="#C0392B"
+        )
+        btn_rouge.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_rouge, "Changer la couleur du véhicule sélectionné en rouge")
     
     def creer_section_tableau(self, parent):
         """Crée la section tableau avec les nouvelles colonnes et tri"""
@@ -397,7 +462,7 @@ class ReperageTab:
         container.configure(height=250)  # Hauteur minimale de 250px
         
         # Tableau (MODIFIÉ : ajout nouvelles colonnes)
-        columns = ("lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro")
+        columns = ("lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro", "couleur")
         self.tree_reperage = ttk.Treeview(container, columns=columns, show="headings", height=8)
         
         # Configuration du style pour utiliser les paramètres de la journée
@@ -420,7 +485,8 @@ class ReperageTab:
             "marge": "ÉCART BUDGET",  # MODIFIÉ - Pas de tri (calculé)
             "statut": "STATUT",  # Pas de tri (automatique)
             "champ_libre": "CHAMP LIBRE ↕",  # NOUVEAU
-            "reserve_pro": "RÉSERVÉ PRO ↕"  # NOUVEAU
+            "reserve_pro": "RÉSERVÉ PRO ↕",  # NOUVEAU
+            "couleur": "COULEUR ↕"  # NOUVEAU
         }
         
         for col, heading in headings.items():
@@ -434,7 +500,7 @@ class ReperageTab:
             if self.get_param_from_journee('largeur_colonnes_auto', True):
                 if col in ["lot", "annee", "temps_reparations"]:
                     self.tree_reperage.column(col, width=80, anchor="center", minwidth=60)
-                elif col in ["kilometrage", "reserve_pro"]:
+                elif col in ["kilometrage", "reserve_pro", "couleur"]:
                     self.tree_reperage.column(col, width=100, anchor="center", minwidth=80)
                 elif col in ["prix_revente", "cout_reparations", "prix_max", "prix_achat"]:
                     self.tree_reperage.column(col, width=110, anchor="center", minwidth=90)
@@ -452,7 +518,7 @@ class ReperageTab:
                 # Tailles fixes traditionnelles
                 if col in ["lot", "annee", "temps_reparations"]:
                     self.tree_reperage.column(col, width=80, anchor="center")
-                elif col in ["kilometrage", "reserve_pro"]:
+                elif col in ["kilometrage", "reserve_pro", "couleur"]:
                     self.tree_reperage.column(col, width=100, anchor="center")
                 elif col in ["prix_revente", "cout_reparations", "prix_max", "prix_achat"]:
                     self.tree_reperage.column(col, width=100, anchor="center")
@@ -494,8 +560,8 @@ class ReperageTab:
         # Initialiser les indicateurs visuels de tri
         self.mettre_a_jour_indicateurs_tri()
         
-        # Ajouter tooltips aux en-têtes
-        self.ajouter_tooltips_colonnes()
+        # NOUVEAU : Initialiser les tooltips contextuels par colonne avec formules
+        self.column_tooltips = ajouter_tooltips_colonnes_tableau(self.tree_reperage, self.data_adapter)
     
     def trier_par_colonne(self, colonne):
         """Trie le tableau par la colonne sélectionnée"""
@@ -577,7 +643,8 @@ class ReperageTab:
             'description_reparations': 'chose_a_faire',
             'prix_achat': 'prix_achat',
             'champ_libre': 'champ_libre',
-            'reserve_pro': 'reserve_professionnels'
+            'reserve_pro': 'reserve_professionnels',
+            'couleur': 'couleur'
         }
         
         attribut = attribut_map.get(colonne)
@@ -732,6 +799,13 @@ class ReperageTab:
         else:
             return  # Pas de paramètres disponibles
         
+        # Appliquer la taille de police des tooltips
+        taille_tooltips = params.get('taille_police_tooltips', 11)
+        set_tooltip_font_size(taille_tooltips)
+        
+        # Mettre à jour les tooltips contextuels avec les nouveaux paramètres
+        self.mettre_a_jour_tooltips_contextuels()
+        
         # Reconfigurer le style du tableau
         if hasattr(self, 'tree_reperage') and self.tree_reperage.winfo_exists():
             self.configurer_style_tableau()
@@ -742,6 +816,27 @@ class ReperageTab:
             self.mettre_a_jour_polices_recursive(self.scrollable_frame, params)
         except Exception as e:
             print(f"⚠️ Erreur lors de la mise à jour des polices: {e}")
+    
+    def mettre_a_jour_tooltips_contextuels(self):
+        """Met à jour les tooltips contextuels avec les paramètres actuels"""
+        if self.column_tooltips and hasattr(self, 'tree_reperage'):
+            # Nettoyer l'ancien gestionnaire de tooltips
+            try:
+                self.column_tooltips.cleanup()
+            except:
+                pass
+            
+            # Forcer un petit délai avant de recréer pour éviter les conflits
+            self.tree_reperage.after(100, lambda: self._recreer_tooltips_contextuels())
+    
+    def _recreer_tooltips_contextuels(self):
+        """Recrée les tooltips contextuels après nettoyage"""
+        try:
+            # Recréer les tooltips avec les paramètres mis à jour
+            self.column_tooltips = ajouter_tooltips_colonnes_tableau(self.tree_reperage, self.data_adapter)
+        except Exception as e:
+            print(f"Erreur recréation tooltips: {e}")
+            self.column_tooltips = None
     
     def mettre_a_jour_polices_recursive(self, widget, params):
         """Met à jour récursivement les polices des widgets selon les paramètres"""
@@ -922,13 +1017,88 @@ class ReperageTab:
                     vehicule.get_ecart_budget_str(),
                     statut,
                     vehicule.champ_libre,
-                    vehicule.reserve_professionnels
+                    vehicule.reserve_professionnels,
+                    vehicule.get_tag_couleur()
                 ), tags=tags)
     
     def arreter_auto_refresh(self):
         """Arrête l'actualisation automatique"""
         self.auto_refresh_enabled = False
-
+    
+    def cleanup(self):
+        """Nettoie complètement l'onglet et ses ressources"""
+        # Arrêter l'auto-refresh
+        self.arreter_auto_refresh()
+        
+        # Nettoyer les tooltips contextuels
+        if self.column_tooltips:
+            try:
+                self.column_tooltips.cleanup()
+                self.column_tooltips = None
+            except:
+                pass
+        
+        # Nettoyer l'édition en cours
+        try:
+            self.finish_edit()
+        except:
+            pass
+    
+    def changer_couleur_selection(self, nouvelle_couleur: str):
+        """Change la couleur du véhicule sélectionné"""
+        selection = self.tree_reperage.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Sélectionnez d'abord un véhicule dans le tableau pour changer sa couleur")
+            return
+        
+        try:
+            # Récupérer l'index du véhicule sélectionné
+            index_affiche = self.tree_reperage.index(selection[0])
+            
+            # Obtenir le véhicule correspondant dans la liste filtrée/triée
+            vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+            vehicules_tries = self.appliquer_tri(vehicules_affiches)
+            
+            if 0 <= index_affiche < len(vehicules_tries):
+                vehicule = vehicules_tries[index_affiche]
+                
+                # Trouver l'index réel dans la liste complète
+                index_reel = None
+                for i, vehicule_original in enumerate(self.data_adapter.vehicules_reperage):
+                    if vehicule_original.lot == vehicule.lot:  # Identifier par le lot unique
+                        index_reel = i
+                        break
+                
+                if index_reel is not None:
+                    # Mettre à jour la couleur
+                    vehicule_final = self.data_adapter.vehicules_reperage[index_reel]
+                    vehicule_final.couleur = nouvelle_couleur
+                    
+                    # Sauvegarder et actualiser
+                    self.data_adapter.sauvegarder_donnees()
+                    self.actualiser()
+                    
+                    if self.on_data_changed:
+                        self.on_data_changed()
+                    
+                    # Message de confirmation
+                    couleurs_noms = {
+                        'turquoise': '🟢 Turquoise',
+                        'vert': '🟢 Vert', 
+                        'orange': '🟠 Orange',
+                        'rouge': '🔴 Rouge'
+                    }
+                    couleur_nom = couleurs_noms.get(nouvelle_couleur, nouvelle_couleur)
+                    messagebox.showinfo("✅ Succès", f"Couleur du véhicule {vehicule.lot} changée en {couleur_nom}")
+                else:
+                    messagebox.showerror("❌ Erreur", "Véhicule non trouvé dans la liste")
+            else:
+                messagebox.showerror("❌ Erreur", "Index invalide")
+            
+        except Exception as e:
+            messagebox.showerror("❌ Erreur", f"Erreur lors du changement de couleur: {e}")
+            print(f"Erreur détaillée: {e}")  # Pour debug
+    
     def ajouter_vehicule(self):
         """Ajoute un véhicule au repérage avec calcul automatique du prix max"""
         # Validation basique
@@ -1030,23 +1200,51 @@ class ReperageTab:
         
         if prix_achat:
             try:
-                index = self.tree_reperage.index(selection[0])
-                vehicule = self.data_adapter.vehicules_reperage[index]
-                vehicule.prix_achat = prix_achat
-                vehicule.statut = "Acheté"
-                vehicule.date_achat = "2024-12-20"  # Date actuelle simplifiée
+                # Récupérer l'index dans le tableau affiché (filtré/trié)
+                index_affiche = self.tree_reperage.index(selection[0])
                 
-                # Déplacer vers les achetés
-                self.data_adapter.marquer_achete(index)
-                self.actualiser()
+                # Obtenir le véhicule correspondant dans la liste filtrée/triée
+                vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
+                vehicules_tries = self.appliquer_tri(vehicules_affiches)
                 
-                if self.on_data_changed:
-                    self.on_data_changed()
-                
-                messagebox.showinfo("✅ Succès", "Véhicule marqué comme acheté !")
+                if 0 <= index_affiche < len(vehicules_tries):
+                    vehicule = vehicules_tries[index_affiche]
+                    
+                    # Trouver l'index réel dans la liste complète
+                    index_reel = None
+                    for i, vehicule_original in enumerate(self.data_adapter.vehicules_reperage):
+                        if vehicule_original.lot == vehicule.lot:  # Identifier par le lot unique
+                            index_reel = i
+                            break
+                    
+                    if index_reel is not None:
+                        # Mettre à jour le véhicule avec le prix d'achat
+                        vehicule_final = self.data_adapter.vehicules_reperage[index_reel]
+                        vehicule_final.prix_achat = prix_achat
+                        vehicule_final.statut = "Acheté"
+                        
+                        # Utiliser la date actuelle au format correct
+                        from datetime import datetime
+                        vehicule_final.date_achat = datetime.now().strftime("%d/%m/%Y")
+                        
+                        # Transférer vers les achetés
+                        if self.data_adapter.marquer_achete(index_reel):
+                            self.actualiser()
+                            
+                            if self.on_data_changed:
+                                self.on_data_changed()
+                            
+                            messagebox.showinfo("✅ Succès", "Véhicule marqué comme acheté et transféré !")
+                        else:
+                            messagebox.showerror("❌ Erreur", "Erreur lors du transfert du véhicule")
+                    else:
+                        messagebox.showerror("❌ Erreur", "Véhicule non trouvé dans la liste")
+                else:
+                    messagebox.showerror("❌ Erreur", "Index invalide")
                 
             except Exception as e:
-                messagebox.showerror("❌ Erreur", f"Erreur: {e}")
+                messagebox.showerror("❌ Erreur", f"Erreur lors du marquage: {e}")
+                print(f"Erreur détaillée: {e}")  # Pour debug
     
     def actualiser(self):
         """Met à jour l'affichage du tableau avec tri et nouvelles couleurs"""
@@ -1063,34 +1261,8 @@ class ReperageTab:
                 # Fallback vers settings globaux
                 vehicule.mettre_a_jour_prix_max(self.settings)
         
-        # Transférer les véhicules avec prix d'achat vers les achetés (seulement si pas de recherche)
-        if not hasattr(self, 'var_recherche') or not self.var_recherche.get().strip():
-            vehicules_a_transferer = []
-            for i, vehicule in enumerate(self.data_adapter.vehicules_reperage):
-                if vehicule.prix_achat and vehicule.prix_achat.strip() and vehicule.prix_achat != "0":
-                    vehicules_a_transferer.append(i)
-            
-            # Transférer (en commençant par la fin pour ne pas décaler les indices)
-            for i in reversed(vehicules_a_transferer):
-                vehicule = self.data_adapter.vehicules_reperage[i]
-                
-                # Marquer comme acheté avec date
-                vehicule.marquer_achete()
-                
-                # Ajouter aux achetés s'il n'y est pas déjà
-                if not any(v.lot == vehicule.lot for v in self.data_adapter.vehicules_achetes):
-                    self.data_adapter.vehicules_achetes.append(vehicule)
-                
-                # Retirer du repérage
-                del self.data_adapter.vehicules_reperage[i]
-            
-            # Sauvegarder immédiatement après transfert
-            if vehicules_a_transferer:
-                self.data_adapter.sauvegarder_donnees()
-                
-                # Notifier les changements pour actualiser l'onglet achetés
-                if self.on_data_changed:
-                    self.on_data_changed()
+        # SUPPRIMÉ : Le transfert automatique des véhicules avec prix d'achat
+        # Désormais, seul le bouton "Marquer acheté" peut transférer un véhicule
         
         # Remplir avec les véhicules en repérage (filtrés et triés)
         vehicules_reperage = self.filtrer_vehicules(self.data_adapter.vehicules_reperage)
@@ -1117,7 +1289,8 @@ class ReperageTab:
                 vehicule.get_ecart_budget_str(),
                 statut,
                 vehicule.champ_libre,  # NOUVEAU
-                "Oui" if vehicule.reserve_professionnels else "Non"  # NOUVEAU
+                "Oui" if vehicule.reserve_professionnels else "Non",  # NOUVEAU
+                vehicule.get_tag_couleur()  # NOUVEAU
             ), tags=tags)
         
         # Sauvegarder les changements (seulement si pas de recherche)
@@ -1180,7 +1353,14 @@ class ReperageTab:
                 )
                 elements.append(Paragraph(f"Rapport généré le {date_rapport}", date_style))
                 
-                # Statistiques
+                # Récupérer la marge de sécurité
+                marge_securite = 200.0  # Valeur par défaut
+                if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                    marge_securite = self.data_adapter.journee.parametres.get('marge_securite', 200.0)
+                elif hasattr(self, 'settings') and self.settings:
+                    marge_securite = self.settings.parametres.get('marge_securite', 200.0)
+                
+                # Statistiques avec marge de sécurité en rouge
                 nb_reperage = len(self.data_adapter.vehicules_reperage)
                 prix_max_total = sum(v.get_prix_numerique('prix_max_achat') for v in self.data_adapter.vehicules_reperage)
                 prix_revente_total = sum(v.get_prix_numerique('prix_revente') for v in self.data_adapter.vehicules_reperage if v.prix_revente and v.prix_revente.strip())
@@ -1195,7 +1375,9 @@ class ReperageTab:
                 • Nombre de véhicules en repérage : <b>{nb_reperage}</b><br/>
                 • Budget maximum total : <b>{prix_max_total:,.0f}€</b><br/>
                 • Potentiel de revente total : <b>{prix_revente_total:,.0f}€</b><br/>
-                • Marge potentielle totale : <b>{marge_potentielle_total:+,.0f}€</b>
+                • Marge potentielle totale : <b>{marge_potentielle_total:+,.0f}€</b><br/>
+                <br/>
+                <font color="red" size="14"><b>🛡️ MARGE DE SÉCURITÉ : {marge_securite:,.0f}€</b></font>
                 """
                 
                 stats_style = ParagraphStyle(
@@ -1216,12 +1398,18 @@ class ReperageTab:
                 elements.append(table_title)
                 elements.append(Spacer(1, 10))
                 
-                # Données du tableau
+                # Trier les véhicules par numéro de lot (du plus petit au plus grand)
+                vehicules_tries = sorted(
+                    self.data_adapter.vehicules_reperage, 
+                    key=lambda v: self._extraire_numero_lot(v.lot)
+                )
+                
+                # Données du tableau avec nouvelle colonne couleur et réservé pro
                 data = [
-                    ["LOT", "MARQUE", "MODÈLE", "ANNÉE", "KM", "MOTORISATION", "PRIX REV", "COÛT RÉP", "TEMPS (h)", "PRIX MAX"]
+                    ["LOT", "COULEUR", "MARQUE", "MODÈLE", "ANNÉE", "KM", "MOTORISATION", "PRIX REV", "COÛT RÉP", "TEMPS (h)", "PRIX MAX", "PRO"]
                 ]
                 
-                for vehicule in self.data_adapter.vehicules_reperage:
+                for vehicule in vehicules_tries:
                     prix_revente = vehicule.get_prix_numerique('prix_revente')
                     prix_max = vehicule.get_prix_numerique('prix_max_achat')
                     cout_reparations = vehicule.get_prix_numerique('cout_reparations')
@@ -1250,59 +1438,76 @@ class ReperageTab:
                         
                         return "\n".join(lignes)
                     
+                    # Créer case couleur (carré unicode coloré)
+                    couleur_symbole = self._get_couleur_symbole(vehicule.couleur)
+                    
+                    # Réservé aux pros
+                    reserve_pro = "OUI" if vehicule.reserve_professionnels else "NON"
+                    
                     data.append([
                         vehicule.lot,
-                        formater_cellule(vehicule.marque, 12),
-                        formater_cellule(vehicule.modele, 12),
+                        couleur_symbole,
+                        formater_cellule(vehicule.marque, 10),
+                        formater_cellule(vehicule.modele, 10),
                         vehicule.annee,
-                        formater_cellule(vehicule.kilometrage, 10),
-                        formater_cellule(vehicule.motorisation, 12),
+                        formater_cellule(vehicule.kilometrage, 8),
+                        formater_cellule(vehicule.motorisation, 10),
                         f"{prix_revente:.0f}€" if prix_revente > 0 else "-",
                         f"{cout_reparations:.0f}€" if cout_reparations > 0 else "-",
                         f"{temps_reparations:.0f}h" if temps_reparations > 0 else "-",
-                        f"{prix_max:.0f}€" if prix_max > 0 else "-"
+                        f"{prix_max:.0f}€" if prix_max > 0 else "-",
+                        reserve_pro
                     ])
                 
                 # Créer le tableau avec largeurs adaptées
                 table = Table(data, colWidths=[
-                    0.6*inch,  # LOT
-                    0.9*inch,  # MARQUE  
-                    0.9*inch,  # MODÈLE
-                    0.6*inch,  # ANNÉE
-                    0.7*inch,  # KM
-                    0.8*inch,  # MOTORISATION
-                    0.7*inch,  # PRIX REV
-                    0.7*inch,  # COÛT RÉP
-                    0.6*inch,  # TEMPS
-                    0.7*inch   # PRIX MAX
+                    0.5*inch,  # LOT
+                    0.4*inch,  # COULEUR
+                    0.7*inch,  # MARQUE  
+                    0.7*inch,  # MODÈLE
+                    0.4*inch,  # ANNÉE
+                    0.6*inch,  # KM
+                    0.7*inch,  # MOTORISATION
+                    0.6*inch,  # PRIX REV
+                    0.6*inch,  # COÛT RÉP
+                    0.5*inch,  # TEMPS
+                    0.6*inch,  # PRIX MAX
+                    0.4*inch   # PRO
                 ])
                 
                 # Style du tableau
-                table.setStyle(TableStyle([
+                table_style = [
                     # En-tête
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2196F3')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 8),  # Police plus petite pour en-têtes
+                    ('FONTSIZE', (0, 0), (-1, 0), 7),  # Police plus petite pour en-têtes
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
                     
                     # Corps du tableau
                     ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                     ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 7),  # Police plus petite pour contenu
+                    ('FONTSIZE', (0, 1), (-1, -1), 6),  # Police plus petite pour contenu
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Grille plus fine
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alignement vertical en haut
                     
                     # Alternance de couleurs pour les lignes
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')])
-                ]))
+                ]
                 
+                # Ajouter les couleurs de fond pour les cases couleur
+                for i, vehicule in enumerate(vehicules_tries):
+                    row_idx = i + 1  # +1 car la première ligne est l'en-tête
+                    couleur_bg = self._get_couleur_bg(vehicule.couleur)
+                    table_style.append(('BACKGROUND', (1, row_idx), (1, row_idx), couleur_bg))
+                
+                table.setStyle(TableStyle(table_style))
                 elements.append(table)
                 
                 # Section descriptions si présentes
                 descriptions_avec_vehicules = [
-                    (v, v.chose_a_faire) for v in self.data_adapter.vehicules_reperage 
+                    (v, v.chose_a_faire) for v in vehicules_tries  # Utiliser la liste triée
                     if v.chose_a_faire and v.chose_a_faire.strip()
                 ]
                 
@@ -1338,6 +1543,36 @@ class ReperageTab:
         except Exception as e:
             messagebox.showerror("❌ Erreur", f"Erreur lors de l'export PDF: {e}")
     
+    def _extraire_numero_lot(self, lot: str) -> int:
+        """Extrait le numéro du lot pour le tri (gère les lots numériques et alphanumériques)"""
+        import re
+        # Chercher un nombre dans le lot
+        match = re.search(r'\d+', str(lot))
+        if match:
+            return int(match.group())
+        # Si pas de nombre, retourner 0 pour les lots sans numéro
+        return 0
+    
+    def _get_couleur_symbole(self, couleur: str) -> str:
+        """Retourne un symbole coloré pour la colonne couleur"""
+        symboles = {
+            'turquoise': '●',
+            'vert': '●', 
+            'orange': '●',
+            'rouge': '●'
+        }
+        return symboles.get(couleur, '●')
+    
+    def _get_couleur_bg(self, couleur: str) -> colors.Color:
+        """Retourne la couleur de fond correspondante pour le PDF"""
+        couleurs_bg = {
+            'turquoise': colors.HexColor('#1ABC9C'),
+            'vert': colors.HexColor('#2ECC71'),
+            'orange': colors.HexColor('#F39C12'), 
+            'rouge': colors.HexColor('#E74C3C')
+        }
+        return couleurs_bg.get(couleur, colors.HexColor('#1ABC9C'))
+    
     def on_double_click(self, event):
         """Gestion du double-clic : popup info pour le lot, édition pour les autres colonnes"""
         try:
@@ -1365,7 +1600,7 @@ class ReperageTab:
                 return
             
             # Pour les autres colonnes, procéder à l'édition normale
-            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro"]
+            columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro", "couleur"]
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
@@ -1393,11 +1628,31 @@ class ReperageTab:
             values = self.tree_reperage.item(item)['values']
             current_value = values[col_index] if col_index < len(values) else ""
             
-            # Créer le widget d'édition avec police normale
-            self.edit_entry = tk.Entry(self.tree_reperage, font=('Segoe UI', 20))
-            self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
-            self.edit_entry.insert(0, str(current_value))
-            self.edit_entry.select_range(0, tk.END)
+            # Traitement spécial pour la couleur (ComboBox)
+            if col_name == "couleur":
+                # Créer un ComboBox pour la couleur
+                import tkinter.ttk as ttk_native
+                self.edit_entry = ttk_native.Combobox(
+                    self.tree_reperage, 
+                    values=['couleur_turquoise', 'couleur_vert', 'couleur_orange', 'couleur_rouge'],
+                    font=('Segoe UI', 16),
+                    state="readonly"
+                )
+                self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+                
+                # Sélectionner la valeur actuelle
+                try:
+                    self.edit_entry.current(self.edit_entry['values'].index(str(current_value)))
+                except (ValueError, tk.TclError):
+                    # Si la valeur actuelle n'est pas dans la liste, prendre la première
+                    self.edit_entry.current(0)
+            else:
+                # Créer le widget d'édition classique avec police normale
+                self.edit_entry = tk.Entry(self.tree_reperage, font=('Segoe UI', 20))
+                self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+                self.edit_entry.insert(0, str(current_value))
+                self.edit_entry.select_range(0, tk.END)
+            
             self.edit_entry.focus()
             
             # Bind des événements
@@ -1440,7 +1695,7 @@ class ReperageTab:
                 vehicule = vehicules_tries[index_affiche]
                 
                 # Récupérer le nom de la colonne
-                columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro"]
+                columns_names = ["lot", "marque", "modele", "annee", "kilometrage", "motorisation", "prix_revente", "cout_reparations", "temps_reparations", "description_reparations", "prix_max", "prix_achat", "marge", "statut", "champ_libre", "reserve_pro", "couleur"]
                 col_index = int(self.editing_column.replace('#', '')) - 1
                 
                 if 0 <= col_index < len(columns_names):
@@ -1452,32 +1707,28 @@ class ReperageTab:
                     elif col_name == "reserve_pro":
                         # Conversion booléenne
                         setattr(vehicule, "reserve_professionnels", new_value.lower() in ['oui', 'true', '1', 'yes'])
+                    elif col_name == "couleur":
+                        # Conversion couleur
+                        setattr(vehicule, "couleur", new_value)
                     else:
                         setattr(vehicule, col_name, new_value)
                 
-                # Cas spécial pour prix_achat : arrêter temporairement l'auto-refresh
-                if col_name == "prix_achat" and new_value and new_value.strip() and new_value != "0":
-                    # Arrêter temporairement l'auto-refresh pour éviter les conflits
-                    old_auto_refresh = self.auto_refresh_enabled
-                    self.auto_refresh_enabled = False
+                # Cas spécial pour prix_achat : SUPPRIMÉ le transfert automatique
+                # Désormais, seul le bouton "Marquer acheté" peut transférer un véhicule
+                if col_name == "prix_achat":
+                    # Modification normale du prix d'achat - pas de transfert automatique
+                    # Recalculer le prix max si nécessaire
+                    if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                        vehicule.mettre_a_jour_prix_max_avec_parametres(self.data_adapter.journee.parametres)
+                    else:
+                        vehicule.mettre_a_jour_prix_max(self.settings)
                     
-                    try:
-                        # Actualiser immédiatement pour transférer
-                        self.actualiser()
-                        
-                        # Notifier les changements
-                        if self.on_data_changed:
-                            self.on_data_changed()
-                        
-                    finally:
-                        # Relancer l'auto-refresh après un délai
-                        def relancer_auto_refresh():
-                            self.auto_refresh_enabled = old_auto_refresh
-                            if self.auto_refresh_enabled:
-                                self.demarrer_auto_refresh()
-                        
-                        # Relancer après 2 secondes
-                        self.parent.after(2000, relancer_auto_refresh)
+                    # Sauvegarder et actualiser normalement
+                    self.data_adapter.sauvegarder_donnees()
+                    self.actualiser()
+                    
+                    if self.on_data_changed:
+                        self.on_data_changed()
                 
                 else:
                     # Modification normale - recalculer le prix max si nécessaire

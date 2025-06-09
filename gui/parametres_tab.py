@@ -94,6 +94,7 @@ class ParametresTab:
             'taille_police_boutons': ctk.StringVar(),
             'taille_police_labels': ctk.StringVar(),
             'taille_police_champs': ctk.StringVar(),
+            'taille_police_tooltips': ctk.StringVar(),
             'largeur_colonnes_auto': ctk.BooleanVar()
         }
     
@@ -446,6 +447,29 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
         ajouter_tooltip(champs_label, TOOLTIPS['param_taille_police_champs'])
         ajouter_tooltip(champs_entry, TOOLTIPS['param_taille_police_champs'])
         
+        # NOUVEAU : Taille police tooltips
+        tooltips_frame = ctk.CTkFrame(right_column)
+        tooltips_frame.pack(fill="x", pady=3, padx=10)
+        
+        tooltips_label = ctk.CTkLabel(
+            tooltips_frame,
+            text="Tooltips:",
+            font=ctk.CTkFont(size=11),
+            width=140
+        )
+        tooltips_label.pack(side="left", padx=5, pady=5)
+        
+        tooltips_entry = ctk.CTkEntry(
+            tooltips_frame,
+            textvariable=self.vars_parametres['taille_police_tooltips'],
+            width=60,
+            placeholder_text="11"
+        )
+        tooltips_entry.pack(side="right", padx=5, pady=5)
+        
+        ajouter_tooltip(tooltips_label, "Taille de la police des infobulles d'aide (recommandé: 9-14)")
+        ajouter_tooltip(tooltips_entry, "Taille de la police des infobulles d'aide (recommandé: 9-14)")
+        
         # Hauteur lignes tableau
         hauteur_frame = ctk.CTkFrame(right_column)
         hauteur_frame.pack(fill="x", pady=3, padx=10)
@@ -522,6 +546,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
         self.vars_parametres['taille_police_boutons'].set(str(parametres.get('taille_police_boutons', 12)))
         self.vars_parametres['taille_police_labels'].set(str(parametres.get('taille_police_labels', 12)))
         self.vars_parametres['taille_police_champs'].set(str(parametres.get('taille_police_champs', 12)))
+        self.vars_parametres['taille_police_tooltips'].set(str(parametres.get('taille_police_tooltips', 12)))
         self.vars_parametres['largeur_colonnes_auto'].set(parametres.get('largeur_colonnes_auto', True))
     
     def toggle_mode_sombre(self):
@@ -547,6 +572,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
             taille_police_boutons = int(self.vars_parametres['taille_police_boutons'].get())
             taille_police_labels = int(self.vars_parametres['taille_police_labels'].get())
             taille_police_champs = int(self.vars_parametres['taille_police_champs'].get())
+            taille_police_tooltips = int(self.vars_parametres['taille_police_tooltips'].get())
             largeur_colonnes_auto = self.vars_parametres['largeur_colonnes_auto'].get()
             
             # Validation
@@ -587,6 +613,10 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
                 messagebox.showerror("❌ Erreur", "La taille de police des champs doit être entre 8 et 20")
                 return
             
+            if not (8 <= taille_police_tooltips <= 20):
+                messagebox.showerror("❌ Erreur", "La taille de police des tooltips doit être entre 8 et 20")
+                return
+            
             # Mettre à jour les paramètres de la journée
             self.journee.parametres['tarif_horaire'] = tarif_horaire
             self.journee.parametres['commission_vente'] = commission_vente
@@ -601,6 +631,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
             self.journee.parametres['taille_police_boutons'] = taille_police_boutons
             self.journee.parametres['taille_police_labels'] = taille_police_labels
             self.journee.parametres['taille_police_champs'] = taille_police_champs
+            self.journee.parametres['taille_police_tooltips'] = taille_police_tooltips
             self.journee.parametres['largeur_colonnes_auto'] = largeur_colonnes_auto
             
             # Notifier le changement pour recalculer les prix max ET appliquer le style
@@ -625,6 +656,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
             taille_police_boutons = int(self.vars_parametres['taille_police_boutons'].get())
             taille_police_labels = int(self.vars_parametres['taille_police_labels'].get())
             taille_police_champs = int(self.vars_parametres['taille_police_champs'].get())
+            taille_police_tooltips = int(self.vars_parametres['taille_police_tooltips'].get())
             
             # Validation rapide
             if not (15 <= hauteur_lignes_tableau <= 60) or \
@@ -633,7 +665,8 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
                not (12 <= taille_police_titres <= 32) or \
                not (8 <= taille_police_boutons <= 20) or \
                not (8 <= taille_police_labels <= 20) or \
-               not (8 <= taille_police_champs <= 20):
+               not (8 <= taille_police_champs <= 20) or \
+               not (8 <= taille_police_tooltips <= 20):
                 messagebox.showerror("❌ Erreur", "Une ou plusieurs valeurs sont hors limites")
                 return
             
@@ -646,6 +679,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
             parametres_temp['taille_police_boutons'] = taille_police_boutons
             parametres_temp['taille_police_labels'] = taille_police_labels
             parametres_temp['taille_police_champs'] = taille_police_champs
+            parametres_temp['taille_police_tooltips'] = taille_police_tooltips
             
             # Faire appliquer temporairement via le callback
             if self.on_parametres_changed:
@@ -676,6 +710,7 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
                 'taille_police_boutons': 12,
                 'taille_police_labels': 12,
                 'taille_police_champs': 12,
+                'taille_police_tooltips': 11,
                 'largeur_colonnes_auto': True
             }
             
@@ -739,19 +774,25 @@ Où Main d'Œuvre = Temps Réparations × Tarif Horaire"""
 Votre tarif horaire pour calculer le coût de la main d'œuvre.
 Utilisé dans le calcul : Main d'Œuvre = Temps × Tarif Horaire
 
-💸 COMMISSION VENTE
-Pourcentage prélevé lors de la vente du véhicule réparé.
-Utilisé dans le calcul : Commission = Prix Revente × (% / 100)
+💸 COMMISSION D'ENCHÈRE
+Pourcentage prélevé par la maison d'enchères lors de l'ACHAT.
+• Dans Prix Max : calculée sur Prix Revente (estimation)
+• Dans Marge Finale : calculée sur Prix d'Achat (réel)
 
 🛡️ MARGE DE SÉCURITÉ  
-Marge fixe déduite pour couvrir les imprévus et garantir la rentabilité.
-Montant fixe en euros décompté du prix maximum.
+Marge fixe déduite UNIQUEMENT du prix maximum pour éviter les pertes.
+Elle N'EST PAS déduite de la marge finale (car c'est juste une sécurité).
 
 🎨 MODE SOMBRE
 Active/désactive le thème sombre de l'interface.
 
-📊 CALCUL DU PRIX MAXIMUM
-Prix Max = Prix Revente - (Coût Réparations + Main d'Œuvre) - Commission Vente - Marge Sécurité
+📊 CALCULS DÉTAILLÉS
+
+🔍 PRIX MAXIMUM (Phase repérage) :
+Prix Max = Prix Revente - (Coût Réparations + Main d'Œuvre) - Commission% × Prix Revente - Marge Sécurité
+
+💰 MARGE FINALE (Véhicules vendus) :
+Marge = Prix Vente Final - (Prix Achat + Coût Réparations + Main d'Œuvre + Commission% × Prix Achat)
 
 ⚠️ CES PARAMÈTRES SONT SPÉCIFIQUES À CETTE JOURNÉE D'ENCHÈRE
 Chaque journée a ses propres paramètres et ne sont pas partagés."""

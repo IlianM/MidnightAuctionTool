@@ -20,7 +20,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
 from config.settings import AppSettings
-from utils.tooltips import ajouter_tooltip, TOOLTIPS
+from utils.tooltips import ajouter_tooltip, TOOLTIPS, set_tooltip_font_size, ajouter_tooltips_colonnes_achetes
 
 class AchetesTab:
     """Onglet véhicules achetés avec CustomTkinter"""
@@ -35,11 +35,18 @@ class AchetesTab:
         
         # Variables d'interface
         self.tree_achetes = None
+        self.edit_entry = None
+        self.editing_item = None
+        self.editing_column = None
+        self.column_tooltips = None  # NOUVEAU : Gestionnaire de tooltips contextuels
         
         # Variables pour l'actualisation automatique
         self.auto_refresh_enabled = True
         self.auto_refresh_interval = 500  # 5 secondes
         self.last_data_hash = None
+        
+        # Variables pour le tri
+        self.tri_actuel = {'colonne': None, 'sens': 'asc'}  # 'asc' ou 'desc'
         
         # Créer l'interface directement dans le parent (onglet du TabView)
         self.creer_interface()
@@ -100,13 +107,77 @@ class AchetesTab:
         export_pdf_button.pack(side="left", padx=10, pady=10)
         ajouter_tooltip(export_pdf_button, "Exporter les véhicules achetés vers un document PDF professionnel")
         
+        # NOUVEAU : Boutons de couleur
+        color_label = ctk.CTkLabel(
+            buttons_frame,
+            text="🎨 COULEURS:",
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        color_label.pack(side="left", padx=(30, 5), pady=10)
+        
+        # Bouton turquoise
+        btn_turquoise = ctk.CTkButton(
+            buttons_frame,
+            text="🟢",
+            command=lambda: self.changer_couleur_selection("turquoise"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#1ABC9C",
+            hover_color="#16A085"
+        )
+        btn_turquoise.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_turquoise, "Changer la couleur du véhicule sélectionné en turquoise")
+        
+        # Bouton vert
+        btn_vert = ctk.CTkButton(
+            buttons_frame,
+            text="🟢",
+            command=lambda: self.changer_couleur_selection("vert"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#2ECC71",
+            hover_color="#27AE60"
+        )
+        btn_vert.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_vert, "Changer la couleur du véhicule sélectionné en vert")
+        
+        # Bouton orange
+        btn_orange = ctk.CTkButton(
+            buttons_frame,
+            text="🟠",
+            command=lambda: self.changer_couleur_selection("orange"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#F39C12",
+            hover_color="#E67E22"
+        )
+        btn_orange.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_orange, "Changer la couleur du véhicule sélectionné en orange")
+        
+        # Bouton rouge
+        btn_rouge = ctk.CTkButton(
+            buttons_frame,
+            text="🔴",
+            command=lambda: self.changer_couleur_selection("rouge"),
+            font=ctk.CTkFont(size=16),
+            width=40,
+            height=30,
+            fg_color="#E74C3C",
+            hover_color="#C0392B"
+        )
+        btn_rouge.pack(side="left", padx=2, pady=10)
+        ajouter_tooltip(btn_rouge, "Changer la couleur du véhicule sélectionné en rouge")
+        
         refresh_button = ctk.CTkButton(
             buttons_frame,
             text="🔄 Actualiser",
             command=self.actualiser,
             font=ctk.CTkFont(size=12, weight="bold")
         )
-        refresh_button.pack(side="right", padx=15, pady=10)
+        refresh_button.pack(side="right", padx=20, pady=15)
         ajouter_tooltip(refresh_button, "Met à jour l'affichage des véhicules achetés et recalcule les statistiques.")
         
         # Barre de recherche (juste au-dessus du tableau)
@@ -184,14 +255,11 @@ class AchetesTab:
         container.configure(height=250)  # Hauteur minimale de 250px
         
         # Treeview (tableau) avec description et prix de revente vide pour véhicules fraîchement achetés
-        columns = ("lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat")
+        columns = ("lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat", "couleur")
         self.tree_achetes = ttk.Treeview(container, columns=columns, show="headings", height=10)
         
         # Configuration du style
         self.configurer_style_tableau()
-        
-        # Variables pour le tri
-        self.tri_actuel = {'colonne': None, 'sens': 'asc'}  # 'asc' ou 'desc'
         
         # Configuration des colonnes
         headings = {
@@ -204,7 +272,8 @@ class AchetesTab:
             "prix_vente_final": "PRIX VENTE ↕",
             "marge_euro": "MARGE €",
             "marge_pourcent": "MARGE %",
-            "date_achat": "DATE ACHAT ↕"
+            "date_achat": "DATE ACHAT ↕",
+            "couleur": "COULEUR ↕"
         }
         
         for col, heading in headings.items():
@@ -225,7 +294,7 @@ class AchetesTab:
                 self.tree_achetes.column(col, width=110, anchor="center")
             elif col in ["marge_euro", "marge_pourcent"]:
                 self.tree_achetes.column(col, width=100, anchor="center")
-            elif col == "date_achat":
+            elif col in ["date_achat", "couleur"]:
                 self.tree_achetes.column(col, width=100, anchor="center")
             else:
                 self.tree_achetes.column(col, width=100, anchor="center")
@@ -259,17 +328,11 @@ class AchetesTab:
         # Bind pour édition au double-clic (MODIFIÉ pour popup sur lot)
         self.tree_achetes.bind("<Double-1>", self.on_double_click)
         
-        # Variables d'édition inline
-        self.edit_entry = None
-        self.editing_item = None
-        self.editing_column = None
+        # NOUVEAU : Initialiser les tooltips contextuels par colonne avec formules
+        self.column_tooltips = ajouter_tooltips_colonnes_achetes(self.tree_achetes, self.data_adapter)
         
         # Ajouter tooltip au tableau
-        ajouter_tooltip(self.tree_achetes, """Tableau des véhicules achetés avec indication de rentabilité :
-• Couleur selon choix utilisateur + indication de rentabilité
-• Double-clic sur LOT pour voir les détails complets
-• Double-clic sur autre colonne pour modifier
-• Marge calculée automatiquement""")
+        ajouter_tooltip(self.tree_achetes, "Tableau des véhicules achetés. Double-clic sur une cellule pour la modifier (sauf les colonnes calculées automatiquement).")
     
     def demarrer_auto_refresh(self):
         """Démarre l'actualisation automatique périodique"""
@@ -332,13 +395,19 @@ class AchetesTab:
         vehicules_achetes = self.appliquer_tri(vehicules_achetes)
         
         for vehicule in vehicules_achetes:
-            # Calculer la marge RÉELLE (seulement si prix vente final renseigné)
-            marge_euros = vehicule.calculer_marge()
-            marge_pourcentage = vehicule.calculer_marge_pourcentage()
+            # Calculer la marge COMPLÈTE (seulement si prix vente final renseigné)
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                # Utiliser le calcul complet avec les paramètres de la journée
+                marge_euros = vehicule.calculer_marge_complete(self.data_adapter.journee.parametres)
+                marge_pourcentage = vehicule.calculer_marge_pourcentage_complete(self.data_adapter.journee.parametres)
+            else:
+                # Fallback vers le calcul simple
+                marge_euros = vehicule.calculer_marge()
+                marge_pourcentage = vehicule.calculer_marge_pourcentage()
             
             # Formatage des marges
             if vehicule.get_prix_numerique('prix_vente_final') > 0:
-                # Véhicule vendu - vraie marge
+                # Véhicule vendu - vraie marge complète
                 marge_euro_str = f"{marge_euros:+.0f}€"
                 marge_pourcent_str = f"{marge_pourcentage:+.1f}%"
                 tag_rentabilite = "rentable" if marge_euros >= 0 else "non_rentable"
@@ -363,7 +432,8 @@ class AchetesTab:
                     f"{vehicule.prix_vente_final}€" if vehicule.prix_vente_final else "",
                     marge_euro_str,
                     marge_pourcent_str,
-                    vehicule.date_achat
+                    vehicule.date_achat,
+                    vehicule.couleur
                 ), tags=tags)
         
         # Mettre à jour les statistiques
@@ -384,13 +454,19 @@ class AchetesTab:
         vehicules_achetes = self.appliquer_tri(vehicules_achetes)
         
         for vehicule in vehicules_achetes:
-            # Calculer la marge RÉELLE (seulement si prix vente final renseigné)
-            marge_euros = vehicule.calculer_marge()
-            marge_pourcentage = vehicule.calculer_marge_pourcentage()
+            # Calculer la marge COMPLÈTE (seulement si prix vente final renseigné)
+            if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+                # Utiliser le calcul complet avec les paramètres de la journée
+                marge_euros = vehicule.calculer_marge_complete(self.data_adapter.journee.parametres)
+                marge_pourcentage = vehicule.calculer_marge_pourcentage_complete(self.data_adapter.journee.parametres)
+            else:
+                # Fallback vers le calcul simple
+                marge_euros = vehicule.calculer_marge()
+                marge_pourcentage = vehicule.calculer_marge_pourcentage()
             
             # Formatage des marges
             if vehicule.get_prix_numerique('prix_vente_final') > 0:
-                # Véhicule vendu - vraie marge
+                # Véhicule vendu - vraie marge complète
                 marge_euro_str = f"{marge_euros:+.0f}€"
                 marge_pourcent_str = f"{marge_pourcentage:+.1f}%"
                 tag_rentabilite = "rentable" if marge_euros >= 0 else "non_rentable"
@@ -414,7 +490,8 @@ class AchetesTab:
                 f"{vehicule.prix_vente_final}€" if vehicule.prix_vente_final else "",
                 marge_euro_str,
                 marge_pourcent_str,
-                vehicule.date_achat
+                vehicule.date_achat,
+                vehicule.couleur
             ), tags=tags)
         
         # Configuration des couleurs pour les tags de couleurs utilisateur
@@ -728,7 +805,7 @@ class AchetesTab:
                 return
             
             # Pour les autres colonnes, procéder à l'édition normale
-            columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat"]
+            columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat", "couleur"]
             
             if 0 <= col_index < len(columns_names):
                 col_name = columns_names[col_index]
@@ -751,11 +828,31 @@ class AchetesTab:
             values = self.tree_achetes.item(item)['values']
             current_value = values[col_index] if col_index < len(values) else ""
             
-            # Créer le widget d'édition
-            self.edit_entry = tk.Entry(self.tree_achetes, font=('Segoe UI', 20))
-            self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
-            self.edit_entry.insert(0, str(current_value))
-            self.edit_entry.select_range(0, tk.END)
+            # Traitement spécial pour la couleur (ComboBox)
+            if col_name == "couleur":
+                # Créer un ComboBox pour la couleur
+                import tkinter.ttk as ttk_native
+                self.edit_entry = ttk_native.Combobox(
+                    self.tree_achetes, 
+                    values=['couleur_turquoise', 'couleur_vert', 'couleur_orange', 'couleur_rouge'],
+                    font=('Segoe UI', 16),
+                    state="readonly"
+                )
+                self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+                
+                # Sélectionner la valeur actuelle
+                try:
+                    self.edit_entry.current(self.edit_entry['values'].index(str(current_value)))
+                except (ValueError, tk.TclError):
+                    # Si la valeur actuelle n'est pas dans la liste, prendre la première
+                    self.edit_entry.current(0)
+            else:
+                # Créer le widget d'édition classique
+                self.edit_entry = tk.Entry(self.tree_achetes, font=('Segoe UI', 20))
+                self.edit_entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+                self.edit_entry.insert(0, str(current_value))
+                self.edit_entry.select_range(0, tk.END)
+            
             self.edit_entry.focus()
             
             # Bind des événements
@@ -796,7 +893,7 @@ class AchetesTab:
                 vehicule = vehicules_tries[index]
             
                 # Récupérer le nom de la colonne
-                columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat"]
+                columns_names = ["lot", "marque", "modele", "annee", "prix_achat", "prix_max", "prix_vente_final", "marge_euro", "marge_pourcent", "date_achat", "couleur"]
                 col_index = int(self.editing_column.replace('#', '')) - 1
                 
                 if 0 <= col_index < len(columns_names):
@@ -805,6 +902,8 @@ class AchetesTab:
                     # Mapper les noms de colonnes vers les attributs
                     if col_name == "prix_max":
                         setattr(vehicule, "prix_max_achat", new_value)
+                    elif col_name == "couleur":
+                        setattr(vehicule, "couleur", new_value)
                     else:
                         # Mettre à jour le véhicule directement
                         setattr(vehicule, col_name, new_value)
@@ -879,6 +978,48 @@ class AchetesTab:
         if hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
             return self.data_adapter.journee.parametres.get(param_name, default_value)
         return self.settings.parametres.get(param_name, default_value)
+    
+    def appliquer_parametres_interface(self, parametres_temp=None):
+        """Applique les paramètres d'interface (pour aperçu ou sauvegarde définitive)"""
+        # Utiliser les paramètres temporaires ou ceux de la journée
+        if parametres_temp:
+            params = parametres_temp
+        elif hasattr(self.data_adapter, 'journee') and self.data_adapter.journee:
+            params = self.data_adapter.journee.parametres
+        else:
+            return  # Pas de paramètres disponibles
+        
+        # Appliquer la taille de police des tooltips
+        taille_tooltips = params.get('taille_police_tooltips', 11)
+        set_tooltip_font_size(taille_tooltips)
+        
+        # Mettre à jour les tooltips contextuels avec les nouveaux paramètres
+        self.mettre_a_jour_tooltips_contextuels()
+        
+        # Reconfigurer le style du tableau
+        if hasattr(self, 'tree_achetes') and self.tree_achetes.winfo_exists():
+            self.configurer_style_tableau()
+    
+    def mettre_a_jour_tooltips_contextuels(self):
+        """Met à jour les tooltips contextuels avec les paramètres actuels"""
+        if self.column_tooltips and hasattr(self, 'tree_achetes'):
+            # Nettoyer l'ancien gestionnaire de tooltips
+            try:
+                self.column_tooltips.cleanup()
+            except:
+                pass
+            
+            # Forcer un petit délai avant de recréer pour éviter les conflits
+            self.tree_achetes.after(100, lambda: self._recreer_tooltips_contextuels())
+    
+    def _recreer_tooltips_contextuels(self):
+        """Recrée les tooltips contextuels après nettoyage"""
+        try:
+            # Recréer les tooltips avec les paramètres mis à jour
+            self.column_tooltips = ajouter_tooltips_colonnes_achetes(self.tree_achetes, self.data_adapter)
+        except Exception as e:
+            print(f"Erreur recréation tooltips: {e}")
+            self.column_tooltips = None
 
     def trier_par_colonne(self, colonne):
         """Trie le tableau par la colonne sélectionnée"""
@@ -939,4 +1080,59 @@ class AchetesTab:
                 # Texte (insensible à la casse)
                 return str(valeur).lower() if valeur else ''
         
-        return sorted(vehicules, key=get_sort_key, reverse=sens_inverse) 
+        return sorted(vehicules, key=get_sort_key, reverse=sens_inverse)
+    
+    def changer_couleur_selection(self, nouvelle_couleur: str):
+        """Change la couleur du véhicule sélectionné"""
+        selection = self.tree_achetes.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Sélectionnez d'abord un véhicule dans le tableau pour changer sa couleur")
+            return
+        
+        try:
+            # Récupérer l'index du véhicule sélectionné
+            index_affiche = self.tree_achetes.index(selection[0])
+            
+            # Obtenir le véhicule correspondant dans la liste filtrée/triée
+            vehicules_affiches = self.filtrer_vehicules(self.data_adapter.vehicules_achetes)
+            vehicules_tries = self.appliquer_tri(vehicules_affiches)
+            
+            if 0 <= index_affiche < len(vehicules_tries):
+                vehicule = vehicules_tries[index_affiche]
+                
+                # Trouver l'index réel dans la liste complète
+                index_reel = None
+                for i, vehicule_original in enumerate(self.data_adapter.vehicules_achetes):
+                    if vehicule_original.lot == vehicule.lot:  # Identifier par le lot unique
+                        index_reel = i
+                        break
+                
+                if index_reel is not None:
+                    # Mettre à jour la couleur
+                    vehicule_final = self.data_adapter.vehicules_achetes[index_reel]
+                    vehicule_final.couleur = nouvelle_couleur
+                    
+                    # Sauvegarder et actualiser
+                    self.data_adapter.sauvegarder_donnees()
+                    self.actualiser()
+                    
+                    if self.on_data_changed:
+                        self.on_data_changed()
+                    
+                    # Message de confirmation
+                    couleurs_noms = {
+                        'turquoise': '🟢 Turquoise',
+                        'vert': '🟢 Vert', 
+                        'orange': '🟠 Orange',
+                        'rouge': '🔴 Rouge'
+                    }
+                    couleur_nom = couleurs_noms.get(nouvelle_couleur, nouvelle_couleur)
+                    messagebox.showinfo("✅ Succès", f"Couleur du véhicule {vehicule.lot} changée en {couleur_nom}")
+                else:
+                    messagebox.showerror("❌ Erreur", "Véhicule non trouvé dans la liste")
+            else:
+                messagebox.showerror("❌ Erreur", "Index invalide")
+            
+        except Exception as e:
+            messagebox.showerror("❌ Erreur", f"Erreur lors du changement de couleur: {e}")
+            print(f"Erreur détaillée: {e}")  # Pour debug 

@@ -37,7 +37,7 @@ class CarteJournee(ctk.CTkFrame):
         """Crée l'interface de la carte"""
         # Header avec titre et date
         header_frame = ctk.CTkFrame(self, height=60, corner_radius=10)
-        header_frame.pack(fill="x", padx=10, pady=(10, 5))
+        header_frame.pack(fill="x", padx=15, pady=(15, 8))
         header_frame.pack_propagate(False)
         
         # Titre de la journée
@@ -62,7 +62,7 @@ class CarteJournee(ctk.CTkFrame):
         
         # Corps avec statistiques
         stats_frame = ctk.CTkFrame(self, height=80)
-        stats_frame.pack(fill="x", padx=10, pady=5)
+        stats_frame.pack(fill="x", padx=15, pady=8)
         stats_frame.pack_propagate(False)
         
         # Statistiques en grille
@@ -93,7 +93,7 @@ class CarteJournee(ctk.CTkFrame):
         
         # Boutons
         boutons_frame = ctk.CTkFrame(self, fg_color=["#F8F9FA", "#2B2B2B"])
-        boutons_frame.pack(fill="x", pady=(10, 0))
+        boutons_frame.pack(fill="x", padx=15, pady=(15, 15))
         
         # Bouton Ouvrir
         ouvrir_btn = ctk.CTkButton(
@@ -103,12 +103,25 @@ class CarteJournee(ctk.CTkFrame):
             font=ctk.CTkFont(size=14, weight="bold"),
             width=100,
             height=35,
-            fg_color="#2196F3",
-            hover_color="#1976D2"
+            fg_color="#1ABC9C",
+            hover_color="#16A085"
         )
-        ouvrir_btn.pack(side="left", padx=5)
+        ouvrir_btn.pack(side="left", padx=(10, 8))
         
-        # NOUVEAU : Bouton Export
+        # Bouton Modifier
+        modifier_btn = ctk.CTkButton(
+            boutons_frame,
+            text="✏️",
+            command=lambda: self.on_edit(self.info_journee['fichier']),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=35,
+            height=35,
+            fg_color="#2ECC71",
+            hover_color="#27AE60"
+        )
+        modifier_btn.pack(side="left", padx=8)
+        
+        # Bouton Export
         export_btn = ctk.CTkButton(
             boutons_frame,
             text="📤",
@@ -119,7 +132,7 @@ class CarteJournee(ctk.CTkFrame):
             fg_color="#F39C12",
             hover_color="#E67E22"
         )
-        export_btn.pack(side="left", padx=5)
+        export_btn.pack(side="left", padx=8)
         
         # Bouton Supprimer
         supprimer_btn = ctk.CTkButton(
@@ -129,13 +142,14 @@ class CarteJournee(ctk.CTkFrame):
             font=ctk.CTkFont(size=12, weight="bold"),
             width=35,
             height=35,
-            fg_color="#F44336",
-            hover_color="#D32F2F"
+            fg_color="#E74C3C",
+            hover_color="#C0392B"
         )
-        supprimer_btn.pack(side="right", padx=5)
+        supprimer_btn.pack(side="right", padx=(8, 10))
         
         # Tooltips
         ajouter_tooltip(ouvrir_btn, f"Ouvrir la base de données '{self.info_journee['nom']}'")
+        ajouter_tooltip(modifier_btn, f"Modifier les informations de base '{self.info_journee['nom']}'")
         ajouter_tooltip(export_btn, f"Exporter '{self.info_journee['nom']}' vers un fichier JSON")
         ajouter_tooltip(supprimer_btn, f"Supprimer définitivement '{self.info_journee['nom']}'")
         ajouter_tooltip(titre, f"Base créée le {self.format_date_creation()}")
@@ -466,7 +480,7 @@ class JourneesSelector:
         """Crée l'interface principale"""
         # Header
         header_frame = ctk.CTkFrame(self.frame, height=140)
-        header_frame.pack(fill="x", padx=20, pady=(20, 10))
+        header_frame.pack(fill="x", padx=25, pady=(25, 15))  # AMÉLIORATION: padding augmenté
         header_frame.pack_propagate(False)
         
         # Titre principal
@@ -494,11 +508,11 @@ class JourneesSelector:
         )
         info_label.pack(pady=(5, 15))
         
-        # Frame pour les boutons d'action
+        # Frame pour les boutons d'action - AMÉLIORATION DU PADDING
         actions_frame = ctk.CTkFrame(self.frame)
-        actions_frame.pack(fill="x", padx=30, pady=20)
+        actions_frame.pack(fill="x", padx=35, pady=25)  # AMÉLIORATION: padding augmenté
         
-        # Bouton Nouvelle Base
+        # Bouton Nouvelle Base - TURQUOISE (action principale positive)
         nouvelle_btn = ctk.CTkButton(
             actions_frame,
             text="➕ Nouvelle Base",
@@ -506,12 +520,12 @@ class JourneesSelector:
             font=ctk.CTkFont(size=14, weight="bold"),
             width=150,
             height=40,
-            fg_color="#4CAF50",
-            hover_color="#45A049"
+            fg_color="#1ABC9C",  # CHANGÉ: Turquoise cohérent (principale positive)
+            hover_color="#16A085"
         )
-        nouvelle_btn.pack(side="left", padx=(0, 10))
+        nouvelle_btn.pack(side="left", padx=(15, 12))  # AMÉLIORATION: margin interne augmenté
         
-        # NOUVEAU : Bouton Import CSV
+        # Bouton Import CSV - VERT (action secondaire positive)
         import_csv_btn = ctk.CTkButton(
             actions_frame,
             text="📊 Importer CSV",
@@ -519,12 +533,12 @@ class JourneesSelector:
             font=ctk.CTkFont(size=14, weight="bold"),
             width=150,
             height=40,
-            fg_color="#FF9800",
-            hover_color="#F57C00"
+            fg_color="#2ECC71",  # CHANGÉ: Vert cohérent (action utile)
+            hover_color="#27AE60"
         )
-        import_csv_btn.pack(side="left", padx=(0, 10))
+        import_csv_btn.pack(side="left", padx=12)  # AMÉLIORATION: margin équilibré
         
-        # NOUVEAU : Bouton Import PDF
+        # Bouton Import PDF - ORANGE (action spécialisée)
         import_pdf_btn = ctk.CTkButton(
             actions_frame,
             text="📄 Importer PDF",
@@ -532,12 +546,12 @@ class JourneesSelector:
             font=ctk.CTkFont(size=14, weight="bold"),
             width=150,
             height=40,
-            fg_color="#E91E63",
-            hover_color="#C2185B"
+            fg_color="#F39C12",  # GARDÉ: Orange cohérent (spécialisé)
+            hover_color="#E67E22"
         )
-        import_pdf_btn.pack(side="left", padx=(0, 10))
+        import_pdf_btn.pack(side="left", padx=12)  # AMÉLIORATION: margin équilibré
         
-        # Bouton Import JSON
+        # Bouton Import JSON - BLEU (action technique)
         import_btn = ctk.CTkButton(
             actions_frame,
             text="📥 Importer JSON",
@@ -545,12 +559,12 @@ class JourneesSelector:
             font=ctk.CTkFont(size=14, weight="bold"),
             width=150,
             height=40,
-            fg_color="#2196F3",
-            hover_color="#1976D2"
+            fg_color="#3498DB",  # CHANGÉ: Bleu plus doux et cohérent
+            hover_color="#2980B9"
         )
-        import_btn.pack(side="left", padx=(0, 10))
+        import_btn.pack(side="left", padx=12)  # AMÉLIORATION: margin équilibré
         
-        # Bouton Export Tout
+        # Bouton Export Tout - VIOLET (action administrative)
         export_btn = ctk.CTkButton(
             actions_frame,
             text="📤 Exporter Tout",
@@ -558,10 +572,10 @@ class JourneesSelector:
             font=ctk.CTkFont(size=14, weight="bold"),
             width=150,
             height=40,
-            fg_color="#9C27B0",
-            hover_color="#8E24AA"
+            fg_color="#8E44AD",  # CHANGÉ: Violet plus doux et cohérent
+            hover_color="#7D3C98"
         )
-        export_btn.pack(side="right")
+        export_btn.pack(side="right", padx=(12, 15))  # AMÉLIORATION: margin interne augmenté
         
         # Tooltips
         ajouter_tooltip(nouvelle_btn, "Créer une nouvelle base de données vide")
@@ -570,9 +584,9 @@ class JourneesSelector:
         ajouter_tooltip(import_btn, "Importer une base de données depuis un fichier JSON")
         ajouter_tooltip(export_btn, "Exporter toutes les bases vers un dossier")
         
-        # Container scrollable pour les cartes
+        # Container scrollable pour les cartes - AMÉLIORATION DU PADDING
         self.cartes_container = ctk.CTkScrollableFrame(self.frame)
-        self.cartes_container.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        self.cartes_container.pack(fill="both", expand=True, padx=25, pady=(0, 25))  # AMÉLIORATION: padding augmenté
         
         # Configurer le grid du container
         self.cartes_container.grid_columnconfigure(0, weight=1)
@@ -621,7 +635,7 @@ class JourneesSelector:
                 self.exporter_journee_specifique
             )
             
-            carte.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+            carte.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
         
         # Configuration du grid pour que les cartes s'étendent
         for col in range(nb_colonnes):

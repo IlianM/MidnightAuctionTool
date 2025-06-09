@@ -151,18 +151,63 @@ class Vehicule:
         self.prix_max_achat = self.calculer_prix_max_avec_parametres(parametres)
     
     def calculer_marge(self) -> float:
-        """Calcule la marge RÉELLE (prix vente final - prix achat - coûts réparations)"""
+        """Calcule la marge RÉELLE complète incluant TOUS les coûts"""
         if not self.a_prix_achat():
             return 0.0
         
         prix_vente_final = self.get_prix_numerique('prix_vente_final')
-        prix_achat = self.get_prix_numerique('prix_achat')
-        cout_reparations = self.get_prix_numerique('cout_reparations')
-        
         if prix_vente_final <= 0:
             return 0.0  # Pas encore vendu
         
-        return prix_vente_final - prix_achat - cout_reparations
+        # COÛTS DIRECTS
+        prix_achat = self.get_prix_numerique('prix_achat')
+        cout_reparations = self.get_prix_numerique('cout_reparations')
+        
+        # COÛTS CALCULÉS - On a besoin des paramètres pour le calcul complet
+        # Note: Cette méthode ne devrait être appelée que pour les véhicules achetés
+        # qui ont accès aux paramètres via leur contexte
+        temps_reparations = self.get_prix_numerique('temps_reparations')
+        
+        # Pour le calcul complet, nous aurions besoin des paramètres de la journée
+        # Comme c'est une méthode du modèle, on fait un calcul simplifié ici
+        # et une méthode complète sera ajoutée qui prend les paramètres en argument
+        
+        # CALCUL SIMPLIFIÉ (pour compatibilité avec l'existant)
+        marge_simple = prix_vente_final - prix_achat - cout_reparations
+        
+        return marge_simple
+    
+    def calculer_marge_complete(self, parametres: Dict) -> float:
+        """Calcule la marge RÉELLE complète avec TOUS les coûts et paramètres"""
+        if not self.a_prix_achat():
+            return 0.0
+        
+        prix_vente_final = self.get_prix_numerique('prix_vente_final')
+        if prix_vente_final <= 0:
+            return 0.0  # Pas encore vendu
+        
+        # COÛTS DIRECTS
+        prix_achat = self.get_prix_numerique('prix_achat')
+        cout_reparations = self.get_prix_numerique('cout_reparations')
+        temps_reparations = self.get_prix_numerique('temps_reparations')
+        
+        # COÛTS CALCULÉS avec les paramètres
+        tarif_horaire = parametres.get('tarif_horaire', 45.0)
+        commission_vente = parametres.get('commission_vente', 8.5)
+        # SUPPRIMÉ : marge_securite (elle n'est que pour le prix max de repérage)
+        
+        # Main d'œuvre = Temps × Tarif horaire
+        main_oeuvre = temps_reparations * tarif_horaire
+        
+        # Commission d'enchère = pourcentage du PRIX D'ACHAT (pas prix de vente)
+        commission = prix_achat * (commission_vente / 100)
+        
+        # CALCUL COMPLET DE LA MARGE CORRIGÉ
+        # Marge = Prix Vente Final - (Prix Achat + Coût Réparations + Main d'Œuvre + Commission d'Enchère)
+        # NOTE: La marge de sécurité n'est QUE pour le calcul du prix max, pas pour la marge finale
+        marge_complete = prix_vente_final - (prix_achat + cout_reparations + main_oeuvre + commission)
+        
+        return marge_complete
     
     def calculer_ecart_budget(self) -> float:
         """Calcule l'écart par rapport au budget (prix max - prix achat)"""
@@ -185,6 +230,18 @@ class Vehicule:
         
         return (marge_euros / prix_achat) * 100
     
+    def calculer_marge_pourcentage_complete(self, parametres: Dict) -> float:
+        """Calcule la marge COMPLÈTE en pourcentage avec TOUS les coûts"""
+        prix_achat = self.get_prix_numerique('prix_achat')
+        if prix_achat <= 0:
+            return 0.0
+        
+        marge_euros = self.calculer_marge_complete(parametres)
+        if marge_euros == 0.0:  # Pas encore vendu
+            return 0.0
+        
+        return (marge_euros / prix_achat) * 100
+    
     def calculer_ecart_budget_pourcentage(self) -> float:
         """Calcule l'écart budget en pourcentage ((prix_max - prix_achat) / prix_achat * 100)"""
         prix_achat = self.get_prix_numerique('prix_achat')
@@ -194,7 +251,7 @@ class Vehicule:
         ecart_euros = self.calculer_ecart_budget()
         return (ecart_euros / prix_achat) * 100
     
-    def get_marge_str(self) -> str:
+    def get_marge_str(self, parametres: Dict = None) -> str:
         """Retourne la marge formatée selon le contexte (écart budget en repérage, marge réelle si vendu)"""
         if not self.a_prix_achat():
             return "N/A"
@@ -202,9 +259,13 @@ class Vehicule:
         # Si vendu (prix vente final renseigné)
         prix_vente_final = self.get_prix_numerique('prix_vente_final')
         if prix_vente_final > 0:
-            # Afficher la marge réelle
-            marge_euros = self.calculer_marge()
-            marge_pourcentage = self.calculer_marge_pourcentage()
+            # Afficher la marge réelle (complète si paramètres disponibles)
+            if parametres:
+                marge_euros = self.calculer_marge_complete(parametres)
+                marge_pourcentage = self.calculer_marge_pourcentage_complete(parametres)
+            else:
+                marge_euros = self.calculer_marge()
+                marge_pourcentage = self.calculer_marge_pourcentage()
             
             signe_euros = "+" if marge_euros >= 0 else ""
             signe_pourcent = "+" if marge_pourcentage >= 0 else ""

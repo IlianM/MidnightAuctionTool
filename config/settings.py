@@ -30,6 +30,7 @@ class AppSettings:
             'taille_police_boutons': 12,  # Taille de police des boutons
             'taille_police_labels': 12,  # Taille de police des labels normaux
             'taille_police_champs': 12,  # Taille de police des champs de saisie
+            'taille_police_tooltips': 11,  # NOUVEAU : Taille de police des tooltips
             'largeur_colonnes_auto': True,  # Ajustement automatique des colonnes
         }
         

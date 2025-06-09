@@ -13,6 +13,7 @@ from gui.achetes_tab import AchetesTab
 from gui.parametres_tab import ParametresTab
 from models.journee_enchere import JourneeEnchere
 from services.journees_manager import JourneesManager
+from utils.tooltips import set_tooltip_font_size
 
 class MainWindow:
     """Fenêtre principale avec onglets CustomTkinter - Version par journée d'enchère"""
@@ -36,6 +37,10 @@ class MainWindow:
         # Configuration du mode sombre/clair depuis les paramètres de la journée
         mode = "dark" if journee.parametres.get('mode_sombre', False) else "light"
         ctk.set_appearance_mode(mode)
+        
+        # Initialiser la taille de police des tooltips
+        taille_tooltips = journee.parametres.get('taille_police_tooltips', 11)
+        set_tooltip_font_size(taille_tooltips)
         
         # Initialisation de l'interface
         self.creer_interface()
@@ -269,10 +274,25 @@ class JourneeDataAdapter:
         return False
     
     def marquer_achete(self, index):
-        """Marque un véhicule comme acheté"""
-        # Cette méthode sera appelée depuis l'interface
-        # La logique de transfert est déjà dans l'interface
-        return True
+        """Marque un véhicule comme acheté et le transfère vers l'onglet achetés"""
+        if 0 <= index < len(self.journee.vehicules_reperage):
+            # Récupérer le véhicule
+            vehicule = self.journee.vehicules_reperage[index]
+            
+            # Marquer comme acheté avec la date actuelle
+            vehicule.marquer_achete()
+            
+            # Transférer vers les achetés (éviter les doublons)
+            if not any(v.lot == vehicule.lot for v in self.journee.vehicules_achetes):
+                self.journee.vehicules_achetes.append(vehicule)
+            
+            # Supprimer du repérage
+            del self.journee.vehicules_reperage[index]
+            
+            # Sauvegarder
+            self.sauvegarder_donnees()
+            return True
+        return False
     
     def sauvegarder_donnees(self):
         """Sauvegarde les données de la journée"""
