@@ -9,6 +9,7 @@ from tkinter import messagebox
 
 from config.settings import AppSettings
 from gui.reperage_tab import ReperageTab
+from gui.recherche_tab import RechercheTab
 from gui.achetes_tab import AchetesTab  
 from gui.parametres_tab import ParametresTab
 from models.journee_enchere import JourneeEnchere
@@ -62,6 +63,7 @@ class MainWindow:
         
         # Créer les onglets
         self.tab_reperage = self.tabview.add("🔍 Repérage")
+        self.tab_recherche = self.tabview.add("🔎 Recherche")
         self.tab_achetes = self.tabview.add("🏆 Véhicules Achetés") 
         self.tab_parametres = self.tabview.add("⚙️ Paramètres")
         
@@ -69,6 +71,14 @@ class MainWindow:
         self.reperage_tab = ReperageTab(
             self.tab_reperage, 
             self.settings, 
+            self.data_adapter,
+            None,  # style_manager
+            self.on_data_changed
+        )
+        
+        self.recherche_tab = RechercheTab(
+            self.tab_recherche,
+            self.settings,
             self.data_adapter,
             None,  # style_manager
             self.on_data_changed
@@ -170,6 +180,9 @@ class MainWindow:
         # Arrêter l'actualisation automatique des onglets
         if hasattr(self, 'reperage_tab') and hasattr(self.reperage_tab, 'arreter_auto_refresh'):
             self.reperage_tab.arreter_auto_refresh()
+        if hasattr(self, 'recherche_tab') and hasattr(self.recherche_tab, 'recherche_en_cours'):
+            # Arrêter les recherches en cours si nécessaire
+            self.recherche_tab.recherche_en_cours = False
         if hasattr(self, 'achetes_tab') and hasattr(self.achetes_tab, 'arreter_auto_refresh'):
             self.achetes_tab.arreter_auto_refresh()
         
